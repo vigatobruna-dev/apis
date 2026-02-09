@@ -1,0 +1,4464 @@
+openapi: 3.0.0
+info:
+  title: EGV API SIMPLIFICADO
+  version: 0.1.0
+  x-logo:
+    url: https://developers-sandbox.bvopen.com.br/sites/default/files/apidoc_specs/API-PIX-V1/assets/images/logo.png
+    backgroundColor: '#FFFFFF'
+    altText: Logo do banco BV
+  description: |
+    # Introdução
+
+    Aqui você encontra todas as informações necessárias para a integração com a API do EGV Simplificado.
+
+    A API de Empréstimo com Garantia de Veículo (EGV) permite realizar empréstimo pessoal usando um veículo como garantia, de uma forma simples rápida e segura.
+
+    Nesta documentação é possível conferir em detalhes toda a jornada da esteira EGV na seção [Jornada EGV](#section/Jornada-EGV).
+    
+    Nessa experiência não é necessário criar API's para integração com documentação, inspeção e assinatura.
+
+    ## Tecnologia
+
+    Nossa API foi desenvolvida seguindo os padrões de arquitetura [REST](https://www.redhat.com/pt-br/topics/api/what-is-a-rest-api).
+
+    As operações são feitas por requisições aos endpoints, de acordo com os verbos HTTP, seguindo o modelo de mensagem codificada em [JSON](https://jsonapi.org/) para as requisições.
+
+    # Como começar
+
+    A API do EGV utiliza o processo de autenticação OAuth2, esse tipo de autenticação via tokens JWT requer primeiramente um `client_id` e `client_secret` com base em um app cadastrado no Developer Portal, confira a seguir os passos necessários para o sucesso da sua integração:
+
+    1. Faça o seu cadastro no nosso [Developer Portal](https://developers-sandbox.bvopen.com.br/como-comecar).
+
+    2. Com o TokenJWT obtido a partir da autenticação do seu `client_id`e `client_secret` realize a sua primeira requisição a um dos endpoints disponíveis na API!
+
+    Se tiver alguma dificuldade durante o processo de integração com a API [fale com a gente](https://developers-sandbox.bvopen.com.br/ajuda).
+
+    # Jornada EGV
+
+    Nesta seção você encontra informações de todo o fluxo da esteira EGV, desde a primeira etapa, onde ocorre a consulta de elegibilidade, até a formalização do contrato na etapa de contratação. Confira a seguir o resumo de cada uma das etapas:
+
+    1. **Verificação de elegibilidade**: Etapa em que se obtém o consentimento do cliente quanto a pré-análise de crédito e ciência a respeito dos termos de uso e política de privacidade do banco BV. Além disso, também é realizada uma primeira consulta, utilizando o número do documento de identificação do cliente (CPF), em um sistema de informações de crédito (SCR), que irá indicar se o cliente está ou não elegível à liberação de crédito.
+
+    2. **Definição das características do veículo em garantia**: Nesta etapa são obtidas informações sobre o veículo existem dois fluxos que podem ser seguidos. O primeiro utiliza a placa do cliente e através da api de busca placa obtemos as informações do veiculo. O segundo é através das apis de  categoria, marca, modelo e versão, essa segunda é menos indicada. As informações obtidas nessas apis serão utilizadas na api de simulação.
+
+    3. **Simulação**: O gatilho para o início da simulação ocorre logo após as definições das características do veículo. Ao iniciar uma simulação, são apresentadas as opções de planos de parcelamento, valor máximo aprovado para empréstimo e outras informações importantes. Nesta etapa também são disponibilizados recursos para atualizar os dados de uma simulação e prosseguir para a formalização de uma proposta (contratação).
+
+    4. **Contratação**: A fase de contratação é onde passamos todos os dados para a geração da CCB (contrato com o banco BV) e validações de regras. Durante o processo de contratação ocorre a captura de dados complementares do cliente e do veículo para formalização da proposta.
+    
+    > **Importante**\
+    > Todas as etapas são eliminatórias : Até o momento do envio de callback de que a proposta foi paga, não temos garantia de que a proposta será paga realmente, tendo em vista que todas as etapas passam por alguma análise o que pode resultar no cancelamento do fluxo de contratação com o BV.
+
+    ## Etapa 1: verificação de elegibilidade
+
+    Nesta seção conheça os recursos disponíveis na primeira etapa da esteira de empréstimo com garantia de veículo.
+
+    [**Realize a verificação de elegibilidade**](#tag/Elegibilidade/operation/createElegibility) e inicie a jornada de empréstimo obtendo o consentimento quanto aos uso dos dados do cliente para pré-análise de crédito e ciência a respeito dos termos de uso e política de privacidade do banco BV. Com a mesma requisição realize uma primeira consulta, utilizando o número do documento de identificação do cliente (CPF), em um sistema de informações de crédito (SCR), que irá indicar se o cliente está ou não elegível à liberação de crédito.
+
+    </br>
+
+    ## Etapa 2: definição das características do veículo
+
+    Nesta etapa são obtidas informações sobre o veículo, como categoria, marca, modelo e versão. Além da definição das características do veículo, ao final dessa etapa temos os dados do veiculo para o início da simulação. Se optar pela api de busca placa, uma chamada já traz o necessário para prosseguir para a simulação. Caso opte pelas apis de categoria, marca, modelo e versão então são necessárias 4 chamadas.
+
+    > **Nota**\
+    > Observe que os recursos disponíveis nesta etapa devem ser utilizados de forma sequencial, para preencher campos, permitindo obter informações a respeito do veículo que o cliente irá utilizar como garantia. As informações obtidas sobre o veículo do cliente serão utilizadas na etapa 3, para criar uma simulação de proposta.
+
+    [**1. Obtenha as opções de categoria do veículo**](#tag/Veiculo/operation/getCategoriesV2) ao consultar a relação de categorias de veículos cadastrados no EGV, disponíveis para requisição.
+
+    [**2. Obtenha as opções de marca do veículo**](#tag/Veiculo/operation/getBrandsV2) ao consultar a relação de marcas de veículos cadastrados no EGV, filtradas conforme o `id` da categoria, obtido no endpoint anterior (passo 1).
+
+    [**3. Obtenha as opções de modelo do veículo**](#tag/Veiculo/operation/getModelsV2) ao consultar a relação de modelos de veículos cadastrados no EGV, filtrados conforme o `id` da marca, obtido no endpoint anterior (passo 2).
+
+    [**4. Obtenha as opções de versão do veículo**](#tag/Veiculo/operation/getVersionsV2) ao consultar a relação de versões de veículos cadastrados no EGV, filtradas conforme o `id` do modelo, obtido no endpoint anterior (passo 3).
+
+    > **Importante**\
+    > Ao projetar a jornada de experiência do usuário (cliente), é importante que a informação sobre a placa do veículo também seja obtida mesmo se optarmos pela apis de categoria, marca, modelo e versão, pois este dado será necessário [na etapa 4](#section/Jornada-EGV/Etapa-2:-definicao-das-caracteristicas-do-veiculo), ao solicitar a análise de risco (de aceitação do veículo como garantia).
+
+    Após obter o identificador único da versão do veículo (`idVersao`), você terá as informações sobre o veículo necessárias para dar início a [etapa de simulação](#section/Jornada-EGV/Etapa-3:-simulacao).
+
+    ## Etapa 3: simulação
+
+    O início da simulação ocorre após obter informações sobre as características do veículo (através dos endpoints da etapa 2). Nesta etapa também são disponibilizados recursos para atualizar os dados de uma simulação e prosseguir para a formalização de uma proposta (contratação).
+
+    A jornada de simulação disponibiliza um fluxo funcional simplificado, prevendo **duas possíveis situações**, escolha uma delas e siga o passo a passo para garantir o sucesso de sua simulação de empréstimo com garantia de veículo:
+
+    - **Criar uma nova simulação**;
+    - **Recuperar uma simulação em andamento** (verificar recursos opcionais).
+
+    [**Crie uma simulação**](#tag/Simulacao/operation/postSimulationsV2), dando início a etapa onde você faz o envio de dados principais do cliente, do veículo em garantia e do parceiro responsável pela operação de empréstimo.
+
+    Ao iniciar uma simulação, no response da chamada são retornadas as opções de planos de parcelamento, valor máximo aprovado para empréstimo e outras informações importantes. Caso necessário você também pode optar por [alterar os dados da simulação](#tag/Simulacao/operation/patchSimulationV2), caso contrário prossiga para a etapa de contratação.
+
+    </br>
+
+    **Recursos opcionais relacionados a simulação**:
+
+    - [**Recupere uma simulação já iniciada**](#tag/Simulacao/operation/getSimulationsV2), informando o identificador da simulação (`idSimulacao`).
+
+      Ao recuperar uma simulação, no response da chamada são retornadas as opções de planos de parcelamento, valor máximo aprovado para empréstimo e outras informações importantes. Caso necessário você também pode optar por alterar os dados da simulação, caso contrário prossiga para a etapa de contratação.
+
+    - [**Altere os dados de uma simulação**](#tag/Simulacao/operation/patchSimulationV2), informando o identificador da simulação (`idSimulacao`).
+
+      Este recurso é especialmente útil caso seja necessário atualizar as condições de parcelamento e/ou valor da transação de empréstimo, confira mais informações verificando os dados enviados nesta requisição.
+
+    Após o cliente estar de acordo com as condições da simulação, com valor máximo aprovado e já optado por um plano de parcelamento adequado, será necessário então prosseguir para a [etapa de contratação](#section/Jornada-EGV/Etapa-4:-contratacao).
+
+    ## Etapa 4: contratação
+
+    O início da etapa de contratação deve ocorrer após confirmar as condições de empréstimo, como forma de parcelamento e valor da transação (ambas definições ocorrem na etapa de simulação).
+
+    Nesta seção, será abordado o processo de contratação, onde ocorrem os seguintes eventos:
+
+    - **Criação de uma proposta**;
+    - **Solicitação de análise de risco** (informa placa do veículo);
+    - **Captura de todos os dados do cliente**;
+
+
+    Confira cada um desses passos logo abaixo, em detalhes:
+
+    [**1. Solicite criar uma proposta**](#tag/Proposta/operation/postProposalV2), prosseguindo com as condições de empréstimo escolhidas durante a simulação.
+
+    </br>
+
+    [**2. Capture dados complementares do veículo**](#tag/Proposta/operation/patchPropostaVeiculo), e realize a análise de risco da aceitação do veículo como garantia. Ao realizar uma requisição ao endpoint, você informa a placa do veículo, dado complementar para realizar a análise de risco.
+
+    > **Importante**\
+    > Ao projetar a jornada de experiência do usuário (cliente), é importante que a informação sobre a placa do veículo já tenha sido obtida ([na etapa 2](#section/Jornada-EGV/Etapa-2:-definicao-das-caracteristicas-do-veiculo)).
+
+    </br>
+
+    [**3. Capture todos os dados do cliente**](#tag/Proposta/operation/patchPropostaPessoa), necessários para viabilizar o prosseguimento de uma proposta de empréstimo com garantia de veículo.
+
+    Visando facilitar um fluxo padronizado de inserção de dados, disponibilizamos uma série de recursos para obter informações por meio de requisições aos [endpoints de domínio](#tag/Dominios):
+
+    Informações pessoais:
+
+    - [Obter opções de estado civil](#tag/Dominios/operation/getMaritalStatus);
+    - [Obter opções quanto ao estado da federação em que foi emitido o documento de identificação](#tag/Dominios/operation/getUf);
+    - [Obter gênero](#tag/Dominios/operation/getGenders);
+    - [Obter tipo de documento a ser informado](#tag/Dominios/operation/getDocumentTypes).
+
+    Informações sobre o endereço:
+
+    - [Obter o estado de residência](#tag/Dominios/operation/getUf);
+    - [Obter endereço ao informar o CEP](#tag/Dominios/operation/getAdressByZipcode);
+    - [Obter opções quanto ao tipo de endereço](#tag/Dominios/operation/getAddressTypes).
+
+    Informações profissionais:
+
+    - [Obter opções de profissão](#tag/Dominios/operation/getProfessions);
+    - [Obter opções para tipo de categoria profissional](#tag/Dominios/operation/getProfessionsCategories);
+    - [Obter opções de renda](#tag/Dominios/operation/getTypeIncome);
+    - [Obter opções quanto ao tipo de endereço](#tag/Dominios/operation/getAddressTypes);
+    - [Obter opções quanto ao estado da federação em que se localiza a empresa](#tag/Dominios/operation/getUf);
+    - [Obter endereço profissional ao informar o CEP](#tag/Dominios/operation/getAdressByZipcode).
+
+    Informações bancárias:
+
+    - [Obter opções de banco](#tag/Dominios/operation/getAllBanks);
+    - [Obter opções quanto ao tipo de conta](#tag/Dominios/operation/getAccountTypes).
+
+    > **Nota**\
+    > Ao projetar a jornada de experiência do usuário (cliente), é importante observar que o momento mais oportuno da jornada para obter todas as informações complementares do cliente, deve ocorrer mediante um fluxo padronizado de inserção de dados, parte das informações devem ser obtidas por preenchimento (exemplo: nome completo, núm. do documento de identificação, etc.), outra parte obtida realizando chamadas aos endpoints de domínio.
+
+    </br>
+
+    # Callbacks
+
+    Os callbacks são emitidos em algumas etapas para informar o parceiro sobre as ações realizadas.
+    No primeiro callback após o envio dos dados da pessoa e do veiculo, será enviando o código de simulação (codigoSimulacaoEGV) e um ticket (numeropropostaparceria)
+    que será utilizado até o fim da jornada com o cliente.
+    O callback deve ser disponibilizado pelos parceiros que tem como finalidade receber as atualizações de status das propostas.
+
+    ## Pagamento
+
+    Em caso de recusa de fraudes, um callback será disparado informando a recusa da proposta, o callback irá retornar os seguintes campos:
+
+    | Campo                     | Descrição                                                                  | Obrigatório          |
+    | ------------------------- | -------------------------------------------------------------------------- | -------------------- |
+    | apikey                    | Chave para autenticação para execução por padrão noformato UUID            | sim                  |
+    | numeroprotocolo           | Número do protocolo.                                                       | sim                  |
+    | numeropropostaparceria    | Número da proposta gerada.                                                 | não                  |
+    | statusproposta            | Sigla do status da proposta.                                               | sim                  |
+    | descricaostatusproposta   | Descrição do status da proposta.                                           | sim                  |
+    | motivorecusa              | Motivo da recusa (Somente para o processo da Garantia Recusada).           | não                  |
+    | parceirocomercial         | Código da Loja atribuído para a proposta.                                  | não                  |
+    | codigooperador            | código utilizado pelo operador                                             | não                  |
+    | valorCreditado            | Valor solicitado de empréstimo                                             | não                  |
+    | codigoSimulacaoEGV        | Valor gerado no momento de simulação                                       | não                  |
+    
+
+    Tabela Status da Proposta
+
+    | Status                    | Descrição                                                                  |
+    | ------------------------- | -------------------------------------------------------------------------- |
+    | CA                        | Crédito Aprovado                                                           |
+    | CR                        | Crédito Recusado                                                           |
+    | C                         | Cancelado                                                                  |
+    | DBA                       | Dados Bancários Atualizado                                                 |
+    | GA                        | Garantia Aprovada                                                          |
+    | GR                        | Garantia Reprovada                                                         |
+    | CCB                       | Cédula de crédito bancario gerada com sucesso.                             |
+    | PR                        | Pagamento Realizado                                                        |
+    | PE                        | Pagamento Erro                                                             |
+    | ERRO                      | Erro ao realizar a Captura.                                                |
+
+    Tabela Erro
+
+    | Campo                     | Descrição                                                                                     | próximo passo                                                                                                                                                              |
+    | ------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | CAPBE-001                 | O CPF não foi informado no body.                                                              | Informar o CPF do proponente na API de Captura de Proposta: dadosProposta.informacoesPessoais.documentoProponente                                                          |
+    | CAPBE-002                 | O código de simulação informado não confere com o CPF.                                        | O código de simulação informado na API de Captura de Proposta não pertence ao proponente informado, verificar o código ou executar novamente a simulação.                  |
+    | CAPBE-003                 | Agente certificado retornado é divergente do informado.                                       | O Agente Certificado não permitido, verificar o Agente Certificado que deverá ser utilizado para realizar o cadastro de proposta para o parceiro.                          |
+    | CAPBE-004                 | Não foi encontrado o código de simulação informado.                                           | O código de simulação não existe! É necessário executar a API de Simulação antes da API de Cadastro de Proposta.                                                           |
+    | CAPBE-005                 | O Parceiro Comercial recuperado da simulação é divergente do informado no body.               | O código de simulação informado na API de Captura de Proposta não pertence ao parceiro, verificar o código ou executar novamente a simulação.                              |
+    | CAPBE-006                 | UF endereço do proponente é divergente da UF licenciamento do veículo informado na simulação. | A UF de licenciamento do veículo informado na API de Simulação deverá ser igual a UF do endereço do proponente informado na API de Captura de Proposta.                    |
+    | CAPTE-500                 | Erro interno do sistema.                                                                      | Por gentileza, informar o "status" retornado para o time responsável pelo serviço para análise. E-mail: CVG Parcerias <Wizard@bancovotorantim.onmicrosoft.com>             |
+    | CAPTE-REP-500             | Erro interno do sistema.                                                                      | Por gentileza, informar o "status" retornado para o time responsável pelo serviço para análise. E-mail: CVG Parcerias <Wizard@bancovotorantim.onmicrosoft.com>             |
+    | CAPTE-AGC-500             | Erro interno do sistema.                                                                      | Por gentileza, informar o "status" retornado para o time responsável pelo serviço para análise. E-mail: CVG Parcerias <Wizard@bancovotorantim.onmicrosoft.com>             |
+    | CAPTE-DIP-500             | Erro interno do sistema.                                                                      | Por gentileza, informar o "status" retornado para o time responsável pelo serviço para análise. E-mail: CVG Parcerias <Wizard@bancovotorantim.onmicrosoft.com>             |
+    | CAPTE-RPR-500             | Erro interno do sistema.                                                                      | Por gentileza, informar o "status" retornado para o time responsável pelo serviço para análise. E-mail: CVG Parcerias <Wizard@bancovotorantim.onmicrosoft.com>             |
+    | CAPTE-ODS-500             | Erro interno do sistema.                                                                      | Por gentileza, informar o "status" retornado para o time responsável pelo serviço para análise. E-mail: CVG Parcerias <Wizard@bancovotorantim.onmicrosoft.com>             |
+    | CAPTE-CAP-500             | Erro interno do sistema.                                                                      | Por gentileza, informar o "status" retornado para o time responsável pelo serviço para análise. E-mail: CVG Parcerias <Wizard@bancovotorantim.onmicrosoft.com>             |
+    | CAPTE-001                 | Erro interno do sistema.                                                                      | Por gentileza, informar o "status" retornado para o time responsável pelo serviço para análise. E-mail: CVG Parcerias <Wizard@bancovotorantim.onmicrosoft.com>             |
+    
+    Exemplos de callbacks
+
+    | url                                                                                                                                                                                                                                                                               | Descrição                                                                                                                                                                                                                        |
+    | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | http://suaurl/webhook?apikey=e18cfde8-a7e0-4947-b2be-3187f5ef717f&numeropropostaparceria=357085583&statusproposta=CA&descricaostatusproposta=Crédito%20Aprovado&numeroprotocolo=5856153&parceirocomercial=999999&codigoSimulacaoEGV=CVG-99960013662-01082025153214                | numeropropostaparceria = 357085583 o statusproposta = CA (Crédito Aprovado )                                                                                                                                                     |
+    | http://suaurl/webhook?apikey=e18cfde8-a7e0-4947-b2be-3187f5ef717f&numeropropostaparceria=357085532&statusproposta=CR&descricaostatusproposta=Crédito%20Recusado&numeroprotocolo=5855466&parceirocomercial=999999&codigoSimulacaoEGV=CVG-99900209814-01082025130812                | numeropropostaparceria = 357085532 o statusproposta = CR (Crédito Recusado )                                                                                                                                                     |
+    | http://suaurl/webhook?apikey=e18cfde8-a7e0-4947-b2be-3187f5ef717f&numeropropostaparceria=357078777&statusproposta=C&descricaostatusproposta=Cancelado&numeroprotocolo=5749478&parceirocomercial=999999                                                                            | numeropropostaparceria = 357078777 o statusproposta = C (Cancelado )                                                                                                                                                             |
+    | http://suaurl/webhook?apikey=21f04e78-38ff-49d3-8f2f-e0efd8c644ff&numeropropostaparceria=357056326&statusproposta=DBA&descricaostatusproposta=Dados%20Bancários%20Atualizado&numeroprotocolo=5323405&parceirocomercial=999999&codigoSimulacaoEGV=CVG-85217735104-26022025074905   | statusproposta = DBA codigoSimulacaoEGV = CVG-85217735104-26022025074905 numeropropostaparceria = 357056326 após o recebimendo do número da proposta, o código da simulação não será mais usado nas outras mensagens de callback |
+    | http://suaurl/webhook?apikey=e18cfde8-a7e0-4947-b2be-3187f5ef717f&numeropropostaparceria=357085596&statusproposta=GA&descricaostatusproposta=Garantia%20Aprovada&numeroprotocolo=5856332&parceirocomercial=999999&codigoSimulacaoEGV=CVG-99991724806-01082025160601               | numeropropostaparceria = 357085596 o statusproposta = GA (Garantia Aprovada )                                                                                                                                                    |
+    | http://suaurl/webhook?apikey=e18cfde8-a7e0-4947-b2be-3187f5ef717f&numeropropostaparceria=357084569&statusproposta=GR&descricaostatusproposta=Garantia%20Reprovada&motivorecusa=Erro+ao+executar+o+ObterDadosPropostaGarantiaBa&numeroprotocolo=5839517&parceirocomercial=999999   | numeropropostaparceria = 357084569 o statusproposta = GR (Garantia Reprovada )                                                                                                                                                   |
+    | http://suaurl/webhook?apikey=e18cfde8-a7e0-4947-b2be-3187f5ef717f&numeropropostaparceria=357085596&statusproposta=CCB&descricaostatusproposta=Cédula%20de%20crédito%20bancario%20gerada.&numeroprotocolo=5856332&parceirocomercial=999999&codigoSimulacaoEGV=CVG-99991724806-0108 | numeropropostaparceria = 357085596 o statusproposta = CCB (Cédula de crédito bancario gerada com sucesso.)                                                                                                                       |
+    | http://suaurl/webhook?apikey=e18cfde8-a7e0-4947-b2be-3187f5ef717f&numeropropostaparceria=358046618&statusproposta=PR&descricaostatusproposta=Pagamento%20Realizado&numeroprotocolo=4908807&parceirocomercial=999999                                                               | numeropropostaparceria = 358046618 o statusproposta = PR (Pagamento Realizado )                                                                                                                                                  |
+    | http://suaurl/webhook?apikey=dea0d138-d259-4763-9a9f-d8e2ccfcfda1&numeropropostaparceria=821607936&statusproposta=PR&descricaostatusproposta=Pagamento%20Realizado&numeroprotocolo=5278691&parceirocomercial=999999&valorCreditado=13907.0                                        | numeropropostaparceria = 821607936 o statusproposta = PR (Pagamento Realizado ) valorCreditado = 13907.0                                                                                                                         |
+    | http://suaurl/webhook?apikey=e18cfde8-a7e0-4947-b2be-3187f5ef717f&numeropropostaparceria=521016588&statusproposta=PE&descricaostatusproposta=Pagamento%20Erro&numeroprotocolo=5811362&parceirocomercial=999999                                                                    | numeropropostaparceria = 521016588 o statusproposta = PE (Pagamento Erro )                                                                                                                                                       |
+    | http://suaurl/webhook?apikey=e18cfde8-a7e0-4947-b2be-3187f5ef717f&numeropropostaparceria=0&statusproposta=ERRO&descricaostatusproposta=CAPBE-006%20-%20UF%20endereço%20do%20proponente%20é%20divergente%20da%20UF%20licenciamento%20do%20veículo%20inf.&numeroprotocolo=5855392   | numeropropostaparceria = 358046618 o statusproposta = ERRO (Erro ao realizar a Captura. )                                                                                                                                        |
+    
+    >  
+servers:
+  - url: https://mtls-apige-des.bancobv.com.br
+    description: Server under development
+  - url: https://mtls-apige-uat.bancobv.com.br
+    description: Internal server for testing
+  - url: https://mtls-apige.bancobv.com.br
+    description: Server in production environment
+tags:
+  - name: Elegibilidade
+    description: Recursos relacionados a etapa de elegibilidade.
+  - name: Veículo
+    description: Recursos para definição de características do veículo.
+  - name: Simulação
+    description: Recursos relacionados a etapa de simulação.
+  - name: Proposta
+    description: Recursos relacionados a etapa de definição da proposta.
+  - name: Domínios
+    description: Recursos para definição de informações relacionadas ao cliente.
+paths:
+  /cvg-api/v2/tipos-banco:
+    get:
+      operationId: getAllBanks
+      summary: Obter opções de banco
+      description: Consulte a relação de bancos cadastrados, disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-banco' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de opções de banco realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BancoSchema'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-combustivel:
+    get:
+      operationId: getFuelTypes
+      summary: Obter opções de combustível
+      description: Consulte a relação de opções de combustível cadastrados, disponiveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-combustivel' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de opções de tipos de combustível realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CombustivelTipoResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-conta:
+    get:
+      operationId: getAccountTypes
+      summary: Obter opções de tipos de conta
+      description: Consulte a relação com opções de tipos de conta cadastrados, disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-conta' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de tipos de conta realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContaTipoResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-documento:
+    get:
+      operationId: getDocumentTypes
+      summary: Obter opções de tipo de documento
+      description: Consulte a relação com opções de tipo de documento (a ser anexado a proposta), disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:    
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-documento' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de opções de tipos de documentos realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentoTipoResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-endereco:
+    get:
+      operationId: getAddressTypes
+      summary: Obter opções de tipos de endereço
+      description: Consulte a relação com opções de tipos de endereço cadastrados, disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+            example: '21996'
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-endereco' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de opções de tipos de endereço realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EnderecoTipoResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-estado-civil:
+    get:
+      operationId: getMaritalStatus
+      summary: Obter opções de estado cívil
+      description: Consulte a relação com as opções de estado cívil cadastradas, disponíveis para requisição.
+      parameters:  
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      tags:
+        - Domínios
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-estado-civil' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de opções de estado cívil realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EstadoCivilTipos'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-genero:
+    get:
+      operationId: getGenders
+      summary: Obter opções de gênero
+      description: Consulte a relação com opções de gênero cadastrados, disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-genero' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de opções gênero cadastradas realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GeneroTipoResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-nacionalidade:
+    get:
+      operationId: getNationality
+      summary: Obter opções de nacionalidade
+      description: Consulte a relação de opções de nacionalidade cadastradas, disponiveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-nacionalidade' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de nacionalidades cadastradas realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TiposNacionalidade'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-profissao:
+    get:
+      operationId: getProfessions
+      summary: Obter opções de profissão
+      description: Consulte a relação de profissões cadastradas, disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-profissao' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de profissões cadastradas realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Profissoes'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-profissao-categoria:
+    get:
+      operationId: getProfessionsCategories
+      summary: Obter opções de categorias profissionais
+      description: Consulte a relação de categorias profissionais cadastradas, disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-profissao-categoria' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de categorias profissionais cadastradas realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProfissoesCategorias'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-renda:
+    get:
+      operationId: getTypeIncome
+      summary: Obter opções de tipos de renda
+      description: Consulte a relação com opções de tipos de renda cadastradas, disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-renda' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de opções cadastradas, quanto ao tipo de renda, realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TiposRendaResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-telefone:
+    get:
+      operationId: getPhoneTypes
+      summary: Obter opções de tipos de telefone para contato
+      description: Consulte a relação de opções de tipos de telefone para contato cadastradas, disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-telefone' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de tipos de telefone para contato realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TelefoneTipos'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-uf:
+    get:
+      operationId: getUf
+      summary: Obter estados da federação (UF)
+      description: Consulte a relação de opções de estado da federação cadastrados, disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-uf' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de opções de estado realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UFResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/endereco/{zipcode}:
+    get:
+      operationId: getAdressByZipcode
+      tags:
+        - Domínios
+      summary: Obter informações sobre o CEP
+      description: Consulte, a partir do CEP, mais informações sobre o logradouro.
+      parameters:
+        - in: path
+          name: zipcode
+          description: CEP do logradouro
+          required: true
+          schema:
+            example: '12345678'
+            maxLength: 8
+            minLength: 8
+            type: string
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/endereco/08900000' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      codigoPostal:
+                        type: string
+                        description: Código Postal (CEP), somente números.
+                        example: '01431000'
+                      localizacao:
+                        type: string
+                        example: Av. Brasil
+                      bairro:
+                        type: string
+                        example: Jardim América
+                      numeroDDD:
+                        type: string
+                        example: '11'
+                      cidade:
+                        type: string
+                        example: SÃO PAULO
+                      estado:
+                        type: string
+                        example: SP
+                  success:
+                    type: boolean
+                    example: true
+                  statusCode:
+                    type: string
+                    example: '20'
+          description: Consulta de informações sobre o CEP realizada com sucesso.
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/tipos-propriedade:
+    get:
+      operationId: getPropertySituations
+      summary: Obter opções de situação de propriedade
+      description: Consulte a relação de situação de propriedade, disponíveis para requisição.
+      tags:
+        - Domínios
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/tipos-propriedade' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de opções cadastradas, quanto a situação de propriedade, realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PropriedadeStatus'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/busca-placa/{placa}:
+    get:
+      summary: Busca Placa
+      description: Buscar as informações do veiculo através da placa.
+      tags:
+        - Veículo
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial do EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: "21996"
+            pattern: "^[0-9]+$"
+            minLength: 1
+            maxLength: 16
+        - in: path
+          name: placa
+          required: true
+          schema:
+            type: string
+            minLength: 7
+            example: "ABC1234"
+            maxLength: 10
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/busca-placa/MYG9183' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        "200":
+          description: Consulta dados do veículo com base na placa.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BuscaPlacaResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - OAuth2: []
+  /cvg-api/v2/categorias:
+    get:
+      operationId: getCategoriesV2
+      summary: Obter opções de categoria de veículo
+      description: |
+        Consulte a relação de categorias de veículos cadastradas no EGV,
+        disponíveis para requisição durante a etapa de definição das características do veículo.
+      tags:
+        - Veículo
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/categorias' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de categorias de veículo cadastradas realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CategoriaResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/marcas:
+    get:
+      tags:
+        - Veículo
+      operationId: getBrandsV2
+      summary: Obter opções de marca de veículo
+      description: Consulte a relação de marcas de veículos cadastradas no EGV, filtradas por categoria, disponíveis para requisição durante a etapa de definição das características do veículo. - Veículo
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+        - in: query
+          name: categoria
+          description: ID (identificador) da categoria do veículo.
+          required: true
+          schema:
+            example: c4ca4238a0b923820dcc509a6f75849b
+            maxLength: 50
+            minLength: 1
+            type: string
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/marcas?categoria=c4ca4238a0b923820dcc509a6f75849b' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de marcas de veículo cadastradas realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MarcaResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/modelos:
+    get:
+      operationId: getModelsV2
+      summary: Obter opções de modelos de veículo
+      description: Consulte a relação de modelos de veículos cadastrados no EGV, filtrados por marca e ano, disponíveis para requisição durante a etapa de definição das características do veículo.
+      tags:
+        - Veículo
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+        - in: query
+          name: marca
+          description: ID (identificador) da marca do veículo.
+          required: true
+          schema:
+            example: 2e1469f93e94f9b37074bc3caa34ce41
+            maxLength: 50
+            minLength: 1
+            type: string
+        - in: query
+          name: ano
+          description: Ano do veículo.
+          required: true
+          schema:
+            type: string
+            minLength: 4
+            maxLength: 4
+            pattern: ^([0-9]){4}
+            example: '2019'
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/modelos?marca=2e1469f93e94f9b37074bc3caa34ce41&ano=2019' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de modelos de veículo cadastrados realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ModeloResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/versoes:
+    get:
+      operationId: getVersionsV2
+      summary: Obter opções de versões de veículo
+      description: Consulte a relação de versões de veículos cadastradas no EGV, filtradas por marca e ano, disponíveis para requisição durante a etapa de definição das características do veículo.
+      tags:
+        - Veículo
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+        - in: query
+          name: marca
+          description: ID (identificador) da marca do veículo.
+          required: true
+          schema:
+            example: 002215e522083b97ccfd83ff970b8e2e
+            maxLength: 50
+            minLength: 1
+            type: string
+        - in: query
+          name: modelo
+          description: ID (identificador) do modelo do veículo.
+          required: true
+          schema:
+            example: bc3986e1caad19a344cbae63f9ebcf64
+            maxLength: 50
+            minLength: 1
+            type: string
+        - in: query
+          name: ano
+          description: Ano da versão do veículo. No formato de 4 digitos.
+          required: true
+          schema:
+            type: string
+            minLength: 4
+            maxLength: 4
+            pattern: ^([0-9]){4}
+            example: '2015'
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/versoes?marca=002215e522083b97ccfd83ff970b8e2e&modelo=bc3986e1caad19a344cbae63f9ebcf64&ano=2015' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de versões de veículo cadastradas realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VersaoResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/elegibilidade:
+    post:
+      operationId: createElegibility
+      summary: Salvar consentimento do cliente e realizar consulta de elegibilidade
+      description: |
+
+        - Salve a confirmação de consentimento do cliente sobre a consulta ao sistema de informações de crédito (SCR), e conhecimento a respeito dos termos de uso e politíca de privacidade do BV, condicionais para consulta de ELEGIBILIDADE.
+
+        - Consulte se o cliente é ELEGÍVEL a liberação de crédito. Esta consulta utiliza o número de identificação do cliente (CPF/CNPJ), em um sistema de informações de crédito (SCR), que irá indicar se o cliente está ou não elegível a liberação de crédito.
+
+        - **Saiba mais sobre o SCR:** é o sistema de informações de crédito do Banco Central do Brasil (Bacen). Ele tem dados de operações de crédito que foram enviados pelas instituições financeiras. Esse histórico tem como finalidade prover informações ao Bacen para monitorar o crédito no sistema financeiro e o exercício de suas atividades de fiscalização, além de possibilitar o intercâmbio de informações entre as instituições financeiras.
+      tags:
+        - Elegibilidade
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      requestBody:
+        description: Dados a serem salvos a respeito do consentimento e verificação de elegibilidade.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: '#/components/schemas/ElegibilityRequest'
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'POST' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/elegibilidade' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996' \
+            -H 'Content-Type: application/json' \
+            -d '{
+            --data": {
+              "nuCpfCnpj": "00410443042",
+              "cdSubProduto": 19,
+              "flScr": true,
+              "flTermosUso": true
+              }
+            }'
+      responses:
+        '201':
+          description: Requisição realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ElegibilityResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/simulacoes:
+    post:
+      operationId: postSimulationsV2
+      summary: Criar simulação
+      tags:
+        - Simulação
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial do EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      description: |
+        Inicie uma simulação de proposta, fazendo o envio de dados do cliente,
+        veículo e parceiro. Obtenha opções de planos de empréstimo.
+      requestBody:
+        description: Dados para simulação.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: '#/components/schemas/CriarSimulacaoRequest'
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'POST' \
+            'http://mtls-api.bancobv.com.br/cvg-api/v2/simulacoes' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996' \
+            -H 'Content-Type: application/json' \
+            -d '{
+            "data": {
+              "tipo": "simulacoes",
+              "atributos": {
+                "pessoa": {
+                  "dataNascimento": "1975-10-08",
+                  "cpfCnpj": "12345678901",
+                  "pessoaJuridica": false
+                },
+                "veiculo": {
+                  "idVersao": "e49ca51bfc66e0ad9aa3f35d11d8787d",
+                  "uf": "SP"
+                }
+                }
+              }
+            }'
+      responses:
+        '202':
+          description: Simulação criada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SimulacaoResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/simulacoes/{idsimulacao}:
+    get:
+      operationId: getSimulationsV2
+      summary: Recuperar simulação
+      tags:
+        - Simulação
+      description: Recupere informações de uma simulação já iniciada, informando o ID da simulação.
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial do EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+        - in: path
+          name: idsimulacao
+          description: ID (identificador) da simulação. Até 50 caracteres.
+          required: true
+          schema:
+            type: string
+            pattern: '[0-9a-zA-Z]$'
+            minLength: 1
+            maxLength: 50
+          style: simple
+          examples:
+            oneId:
+              summary: ID exemplo
+              value: 98c50befbacc126335cbb6b3c214effa
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'GET' \
+            'http://mtls-api.bancobv.com.br/cvg-api/v2/simulacoes/98c50befbacc126335cbb6b3c214effa' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996'
+      responses:
+        '200':
+          description: Consulta de simulação realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SimulacaoResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+    patch:
+      operationId: patchSimulationV2
+      summary: Alterar simulação
+      tags:
+        - Simulação
+      description: |
+        Altere uma simulação em andamento, atualizando dados de parcelas e valor.
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial do EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+        - in: path
+          name: idsimulacao
+          description: ID (identificador) da simulação.
+          required: true
+          schema:
+            type: string
+            pattern: '[0-9a-zA-Z]$'
+            minLength: 1
+            maxLength: 50
+          style: simple
+          examples:
+            oneId:
+              summary: ID exemplo
+              value: 98c50befbacc126335cbb6b3c214effa
+      requestBody:
+        description: Dados da simulação.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  required:
+                    - tipo
+                    - atributos
+                  properties:
+                    tipo:
+                      type: string
+                      description: Tipo de informação relacionada (entidade).
+                      pattern: ^[0-9a-zA-Z]+$
+                      minLength: 1
+                      maxLength: 50
+                      example: simulações
+                    atributos:
+                      $ref: '#/components/schemas/AtualizarSimulacaoV2Request'
+      responses:
+        '202':
+          description: Simulação alterada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SimulacaoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/proposta:
+    post:
+      operationId: postProposalV2
+      summary: Criar proposta
+      tags:
+        - Proposta
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial do EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+      description: Inicie uma solicitação de proposta, fazendo o envio de dados das parcelas e valor.
+      requestBody:
+        description: Dados da proposta
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: '#/components/schemas/RequestCriaProposta'
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'POST' \
+            'https://mtls-apige.bancobv.com.br/cvg-api/v2/proposta' \
+            -H 'accept: application/json' \
+
+            -H 'idParceiro: 21996' \
+            -H 'Content-Type: application/json' \
+            -d '{
+            "data": {
+              "tipo": "proposta",
+              "atributos": {
+                "parceiro": {
+                  "agenteCertificado": {
+                    "cpf": "12345600"
+                  }
+                },
+                "idPlano": "l7xxf2f1158bb81643aa8d8524a1373acf61"
+              },
+              "relacao": {
+                "simulacao": {
+                  "data": {
+                    "tipo": "simulacao",
+                    "id": "l7xxf2f1158bb81643aa8d8524a1373acf61",
+                    "criadoEm": "2023-10-11T00:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }'
+      responses:
+        '200':
+          description: Solicitação de proposta realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CreateProposalResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/proposta/{idProposta}/pessoa:
+    patch:
+      tags:
+        - Proposta
+      summary: Capturar ou editar dados do cliente
+      description: |
+        Atualize uma proposta, incluindo ou alterando dados complementares do cliente (proponente), necessários para viabilizar o prosseguimento de uma proposta de empréstimo com garantia de veículo.
+      operationId: patchPropostaPessoa
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial do EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+        - name: idProposta
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 40
+          example: 12345678
+          description: ID (identificador) da proposta.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchPropostaPessoaRequest'
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'PATCH' \
+            'http://mtls-api.bancobv.com.br/cvg-api/v2/proposta/12345678/pessoa' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996' \
+            -H 'Content-Type: application/json' \
+            -d '{
+            "nomeCompleto": "Ricardo Carvalho dos Santos",
+            "dataNascimento": "1987-08-06",
+            "genero": "MASCULINO",
+            "estadoCivil": "CASADO",
+            "naturalidade": {
+              "descricao": "São Paulo",
+              "uf": "SP"
+            },
+            "nacionalidade": "BRASILEIRO",
+            "nomeMaeCompleto": "Leide Carvalho dos Santos",
+            "documento": {
+              "nomeOrgaoEmissor": "SSP",
+              "unidadeFederacaoEmissao": "SP",
+              "numeroQuote": "3556384932",
+              "tipo": "RG"
+            },
+            "email": "ricardo@mail.com",
+            "valorPatrimonio": 40000,
+            "endereco": {
+              "logradouro": "Rua das Primaveras.",
+              "numero": "330",
+              "complemento": "Apto 201",
+              "bairro": "Goiabal",
+              "cidade": "Rio de Janeiro",
+              "cep": "27300590",
+              "uf": "SP",
+              "tipo": "RESIDENCIAL",
+              "statusResidencia": "PROPRIO",
+              "tempoResidencia": 999999999,
+              "indicadorCorrespondencia": false,
+              "enderecoCorrespondencia": {
+                "logradouro": "Av. Paulista",
+                "numero": "1300",
+                "complemento": "15º andar",
+                "bairro": "Bela Vista",
+                "cidade": "São Paulo",
+                "cep": "17560246",
+                "uf": "SP"
+              }
+            },
+            "telefone": [
+              {
+                "codigoPais": "055",
+                "codigoArea": "11",
+                "numero": "955556666",
+                "tipo": "CELULAR"
+              }
+            ],
+            "banco": {
+              "banco": "001",
+              "agencia": {
+                "numero": "1234",
+                "digito": "6"
+              },
+              "conta": {
+                "numero": "123456",
+                "digito": "7"
+              },
+              "tipo": "COMUM"
+            },
+            "profissao": {
+              "codigo": "003",
+              "nome": "PROFESSOR",
+              "renda": {
+                "valorRenda": 12345.22,
+                "tipo": "RENDIMENTO_MENSAL"
+              },
+              "Empresa": {
+                "nome": "Cólegio João Paulo I",
+                "cnpj": "60657554000199",
+                "endereco": {
+                  "logradouro": "Av. Paulista",
+                  "numero": "1300",
+                  "complemento": "15º andar",
+                  "bairro": "Bela Vista",
+                  "cidade": "São Paulo",
+                  "cep": "17560246",
+                  "uf": "SP"
+                },
+                "telefone": [
+                  {
+                    "codigoPais": "055",
+                    "codigoArea": "11",
+                    "numero": "955556666",
+                    "tipo": "CELULAR"
+                  }
+                ]
+              },
+              "natureza": 1,
+              "numeroSegurancaSocial": "55176074251",
+              "tempo": 24
+              }
+            }'
+      responses:
+        '200':
+          description: Captura dos dados do cliente (proponente) realizada com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatchPropostaPessoaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+  /cvg-api/v2/proposta/{idProposta}/veiculo:
+    patch:
+      tags:
+        - Proposta
+      summary: Capturar ou editar os dados do veículo
+      description: |
+        Atualize uma proposta, incluindo dados complementares do veículo, necessários para viabilizar análise de risco quanto a aceitação do veículo em garantia.
+      operationId: patchPropostaVeiculo
+      parameters:
+        - in: header
+          name: idParceiro
+          description: ID (identificador) do parceiro comercial do EGV. Este ID deverá ser obtido junto ao **API Partner Manager** responsável pelo gerenciamento do produto EGV e integração entre o parceiro comercial e Banco BV.
+          required: true
+          schema:
+            type: string
+            example: '21996'
+            pattern: ^[0-9]+$
+            minLength: 1
+            maxLength: 16
+        - name: idProposta
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 40
+          example: 12345678
+          description: ID (identificador) da proposta.
+        - in: header
+          name: diasExpiracaoCache
+          required: false
+          schema:
+            type: string
+            pattern: ^[0-9]*$
+          description: Dias de validação do cache.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchPropostaVeiculoRequest'
+      x-codeSamples:
+        - lang: cURL
+          label: cURL
+          source: |
+            curl -X 'PATCH' \
+            'http://mtls-api.bancobv.com.br/cvg-api/v2/proposta/12345678/veiculo' \
+            -H 'accept: application/json' \
+            -H 'idParceiro: 21996' \
+            -H 'Content-Type: application/json' \
+            -d '{
+            "placa": "GTK8686"
+            }'
+      responses:
+        '202':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatchPropostaVeiculoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - OAuth2: []
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        password:
+          tokenUrl: https://api-digitaldes.bancovotorantim.com.br/auth/oauth/v2/token-jwt
+          scopes: {}
+  schemas:
+    BancoSchema:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de entidade relacionada (como está sendo recebida).
+          type: string
+          example: banco
+        atributos:
+          type: object
+          properties:
+            codigo:
+              description: |
+                Código identificador do banco. Este é um código único de até três dígitos que identifica o banco no Bacen.
+              type: integer
+              example: 1
+            nome:
+              description: Nome completo do banco.
+              type: string
+              example: BANCO DO BRASIL S.A.
+            nomeAbreviado:
+              description: Nome do banco em versão abreviada.
+              type: string
+              example: BANCO DO BRASIL
+            numero:
+              description: Número do banco - tabela BACEN
+              type: string
+              example: '001'
+    CombustivelTipoResponse:
+      type: object
+      properties:
+        tipo:
+          type: string
+          example: combustivel
+          description: Tipo de informação a receber (entidade).
+        atributos:
+          type: object
+          properties:
+            codigo:
+              description: |
+                Código correspondente ao combustível.
+                * `1`- Gasolina
+                * `2`- Álcool
+                * `3`- Diesel
+              type: number
+              example: 1
+            descricao:
+              type: string
+              description: Descrição do tipo de combustível (como exibir).
+              example: Gasolina
+            nome:
+              type: string
+              description: |
+                Combustível.
+                * `GASOLINA` - Gasolina
+                * `ALCOOL` - Álcool
+                * `DIESEL`- Diesel
+              example: GASOLINA
+    ContaTipoResponse:
+      type: object
+      properties:
+        tipo:
+          type: string
+          example: conta
+          description: Tipo de informação recebida (entidade).
+        atributos:
+          type: object
+          properties:
+            codigo:
+              type: number
+              description: |
+                Código referente ao tipo de conta.
+                * `1` - Comum
+                * `2` - Especial
+                * `3` - Poupança
+              example: 1
+            descricao:
+              type: string
+              description: Descrição do tipo de conta (em PT-BRA), como deve ser exibido ao cliente.
+              example: Comum
+            nome:
+              type: string
+              description: |
+                Tipo de conta.
+                * `COMUM` - Comum
+                * `ESPECIAL`- Especial
+                * `POUPANCA` - Poupança
+              example: COMUM
+    DocumentoTipoResponse:
+      type: object
+      properties:
+        tipo:
+          type: string
+          example: documentos
+          description: Tipo de informação recebida (entidade).
+        atributos:
+          type: object
+          properties:
+            codigo:
+              type: number
+              description: |
+                Código correspondente ao documento.
+                * `1`- RG
+                * `2`- RNE
+                * `3`- Outro
+              example: 1
+            descricao:
+              type: string
+              description: Descrição do documento (como deve ser exibido).
+              example: RNE
+            nome:
+              type: string
+              description: Documento.
+              example: RNE
+    EnderecoTipoResponse:
+      type: object
+      properties:
+        tipo:
+          type: string
+          example: endereco
+          description: Tipo de informação recebida (entidade).
+        atributos:
+          type: object
+          properties:
+            codigo:
+              type: number
+              description: |
+                Código correspondente ao tipo de endereço.
+                * `1`- Residêncial
+                * `2`- Comercial
+                * `3`- Alternativo
+                * `4`- Fiscal
+              example: 1
+            descricao:
+              type: string
+              description: Descrição do tipo de endereço (como deve ser exibido).
+              example: Residencial
+            nome:
+              type: string
+              description: |
+                Tipo de endereço.
+                * `RESIDENCIAL`- Residêncial
+                * `COMERCIAL`- Comercial 
+                * `ALTERNATIVO`- Alternativo
+                * `FISCAL`- Fiscal
+              example: RESIDENCIAL
+    EstadoCivilTipos:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação a receber (entidade).
+          type: string
+          example: estado-civil
+        atributos:
+          type: object
+          properties:
+            codigo:
+              description: |
+                Código correspondente ao estado cívil.
+                * `2` - Divorciado(a)
+                * `3` - Separado(a)
+                * `4` - Solteiro(a)
+                * `5` - Casado(a)
+                * `6` - Viúvo(a)
+              type: integer
+              example: 5
+            descricao:
+              description: Descrição do estado cívil (como exibir).
+              type: string
+              example: Casado
+            nome:
+              description: |
+                Estado cívil.
+                * `DIVORCIADO` - Divorciado(a)
+                * `SEPARADO` - Separado(a)
+                * `SOLTEIRO` - Solteiro(a)
+                * `CASADO` - Casado(a)
+                * `VIUVO` - Viúvo(a)
+              type: string
+              example: CASADO
+    GeneroTipoResponse:
+      type: object
+      properties:
+        tipo:
+          type: string
+          example: genero
+          description: Tipo de informação recebida (entidade).
+        atributos:
+          type: object
+          properties:
+            codigo:
+              type: number
+              description: |
+                Código correspondente ao gênero.
+                * `1`- Masculino
+                * `2`- Feminino
+                * `3`- Outro
+              example: 1
+            descricao:
+              type: string
+              description: Descrição do gênero (como deve ser exibido).
+              example: Feminino
+            nome:
+              type: string
+              description: |
+                Gênero
+                * `MASCULINO`- Masculino
+                * `FEMININO`- Feminino
+                * `OUTRO`- Outro
+              example: FEMININO
+    TiposNacionalidade:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação a receber (entidade).
+          type: string
+          example: nacionalidade
+        atributos:
+          type: object
+          properties:
+            codigo:
+              description: |
+                Código correspondente a nacionalidade.
+                * `1`- Brasileiro(a)
+                * `2`- Estrangeiro(a)
+                * `3`- Naturalizado(a)
+              type: integer
+              example: 1
+            descricao:
+              description: Descrição de nacionalidade (como exibir).
+              type: string
+              example: Brasileiro
+            nome:
+              description: |
+                Nacionalidade.
+                `BRASILEIRO`- Brasileiro(a)
+                `ESTRANGEIRO`- Estrangeiro(a)
+                `NATURALIZADO`- Naturalizado(a)
+              type: string
+              example: BRASILEIRO
+    Profissoes:
+      type: object
+      properties:
+        tipo:
+          type: string
+          example: profissao
+          description: Tipo de informação a receber (entidade).
+        atributos:
+          type: object
+          properties:
+            codigo:
+              type: number
+              description: Código correspondente a profissão.
+              example: 168
+            nome:
+              type: string
+              description: Profissão.
+              example: ATLETA
+    ProfissoesCategorias:
+      type: object
+      properties:
+        tipo:
+          type: string
+          example: profissao-categoria
+          description: Tipo de informação a receber (entidade).
+        atributos:
+          type: object
+          properties:
+            codigo:
+              type: number
+              description: |
+                Código da categoria profissional.
+                * `0` - NAO DEFINIDO
+                * `1` - ASSALARIADO
+                * `2` - EMPRESARIO
+                * `3` - AUTONOMO
+                * `4` - LIBERAL
+                * `5` - OUTROS
+                * `6` - FUNCIONARIO PUBLICO
+                * `7` - APOSENTADO OU PENSIONISTA
+                * `8` - INVESTIDOR
+              example: 1
+            nome:
+              type: string
+              description: Categoria.
+              example: ASSALARIADO
+            descricao:
+              type: string
+              description: Descrição da categoria (como exibir).
+              example: Assalariado
+    PropriedadeStatus:
+      type: object
+      properties:
+        tipo:
+          type: string
+          description: Tipo de informação a receber (entidade).
+          example: propriedade
+        atributos:
+          type: object
+          properties:
+            codigo:
+              description: |
+                Código da situação de propriedade.
+                * `1`- Moradia Própria
+                * `2`- Mora com a Família
+                * `3`- Moradia Alugada
+                * `5`- Moradia Própria Financiada
+                * `8`- Moradia Cedida
+              type: integer
+              example: 1
+            descricao:
+              description: Descrição da situação de propriedade (como exibir).
+              type: string
+              example: Próprio
+            nome:
+              description: |
+                Situação da propriedade.
+                * `PROPRIO`- Moradia Própria
+                * `FAMILIA`- Mora com a Família
+                * `ALUGADO`- Moradia Alugada
+                * `FINANCIADO`- Moradia Própria Financiada
+                * `CEDIDO`- Moradia Cedida
+              type: string
+              example: PROPRIO
+    TiposRendaResponse:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação a receber (entidade).
+          type: string
+          example: renda
+        atributos:
+          type: object
+          properties:
+            codigo:
+              description: |
+                Código identificador do tipo de renda.
+                * `1`- Rendimento mensal
+                * `2`- Renda de cônjuge
+                * `3`- Outra fonte de renda
+                * `4`- Renda mandatória
+                * `5`- Renda compulsória
+                * `6`- Renda consignada
+              type: integer
+              example: 1
+            descricao:
+              description: Descrição do rendimento mensal (como exibir).
+              type: string
+              example: Rendimento Mensal
+            nome:
+              description: |
+                Informação sobre tipo de renda.
+                * `RENDIMENTO MENSAL`- Rendimento mensal
+                * `CONJUGE`- Renda de cônjuge
+                * `OUTROS`- Outra fonte de renda
+                * `MANDATARIO`- Renda mandatória
+                * `COMPULSORIO`- Renda mandatória 
+                * `CONSIGNADO`- Renda consignada
+              type: string
+              example: RENDIMENTO MENSAL
+    TelefoneTipos:
+      type: object
+      properties:
+        tipo:
+          type: string
+          example: telefone
+        atributos:
+          type: object
+          properties:
+            codigo:
+              description: |
+                Código correspondente ao tipo de telefone.
+                * `1`- Telefone residencial
+                * `2`- Telefone comercial
+                * `3`- Telefone celular
+              type: integer
+              example: 1
+            descricao:
+              description: Descrição do tipo de telefone (como exibir).
+              type: string
+              example: Residencial
+            nome:
+              description: |
+                Tipo de telefone.
+                * `RESIDENCIAL`- Telefone residencial
+                * `COMERCIAL`- Telefone comercial
+                * `CELULAR`- Telefone celular
+              type: string
+              example: RESIDENCIAL
+    UFResponse:
+      type: object
+      properties:
+        tipo:
+          type: string
+          example: uf
+          description: Tipo de informação a receber (entidade).
+        atributos:
+          type: object
+          properties:
+            codigo:
+              description: |
+                Código identificador do estado da federação.
+                * `1`- Acre 
+                * `2`- Alagoas
+                * `3`- Amapá
+                * `4`- Amazonas
+                * `5`- Bahia
+                * `6`- Ceará
+                * `7`- Distrito Federal
+                * `8`- Espirito Santo
+                * `9`- Goiás
+                * `10`- Maranhão
+                * `11`- Mato Grosso
+                * `12`- Mato Grosso do Sul
+                * `13`- Minas Gerais
+                * `14`- Pará
+                * `15`- Paraíba 
+                * `16`- Paraná 
+                * `17`- Pernambuco 
+                * `18`- Piauí
+                * `19`- Rio de Janeiro 
+                * `20`- Rio Grande do Norte 
+                * `21`- Rio Grande do Sul 
+                * `22`- Rondônia
+                * `23`- Roraima
+                * `24`- Santa Catarina
+                * `25`- São Paulo 
+                * `26`- Sergipe
+                * `27`- Tocantins
+              type: number
+              example: 1
+            descricao:
+              type: string
+              description: Nome do estado (como exibir).
+              example: Acre
+            nome:
+              type: string
+              description: |
+                Sigla do estado da federação (UF).
+                * `AC`- Acre 
+                * `AL`- Alagoas
+                * `AP`- Amapá
+                * `AM`- Amazonas
+                * `BA`- Bahia
+                * `CE`- Ceará
+                * `DF`- Distrito Federal
+                * `ES`- Espirito Santo
+                * `GO`- Goiás
+                * `MA`- Maranhão
+                * `MT`- Mato Grosso
+                * `MS`- Mato Grosso do Sul
+                * `MG`- Minas Gerais
+                * `PA`- Pará
+                * `PB`- Paraíba 
+                * `PR`- Paraná 
+                * `PE`- Pernambuco 
+                * `PI`- Piauí
+                * `RJ`- Rio de Janeiro 
+                * `RN`- Rio Grande do Norte 
+                * `RS`- Rio Grande do Sul 
+                * `RO`- Rondônia
+                * `RR`- Roraima
+                * `SC`- Santa Catarina
+                * `SP`- São Paulo 
+                * `SE`- Sergipe
+                * `TO`- Tocantins
+              example: AC
+    CategoriaResponse:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação recebida (entidade).
+          type: string
+          example: categorias
+        id:
+          type: string
+          description: ID (identificador) da categoria.
+          example: e441f785b477d4f8454982b8f3c24e40
+        atributos:
+          type: object
+          properties:
+            description:
+              description: Descrição da categoria.
+              type: string
+              example: Automovel
+        links:
+          type: object
+          properties:
+            self:
+              description: Link para selecionar/recuperar a categoria desejada. Trata-se do mesmo endpoint (de categorias), com o ID da categoria selecionada ao final da requisição.
+              type: string
+              example: https://api.bvopen.com.br/cvg-api/v2/categories/e441f785b477d4f8454982b8f3c24e40
+    Categoria:
+      description: Informações sobre a categoria do veículo.
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              description: ID (identificador) da categoria.
+              type: string
+              example: e441f785b477d4f8454982b8f3c24e40
+            tipo:
+              description: Tipo de informação recebida (entidade).
+              type: string
+              example: categories
+        links:
+          type: object
+          properties:
+            related:
+              description: Link interno atrelado a informação recebida na requisição.
+              type: string
+              example: https://api.bvopen.com.br/cvg-api/v2/models/3b97931f1fc00b1d50467e39cd521e5a/category
+    MarcaResponse:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação a receber (entidade).
+          type: string
+          example: marcas
+        id:
+          description: ID (identificador) da categoria.
+          type: string
+          example: 92b73275737e736c99253f98cd825d3e
+        atributos:
+          type: object
+          properties:
+            description:
+              description: Marca do veículo (como exibir).
+              type: string
+              example: Honda
+        relacionamentos:
+          description: Entidades relacionadas na chamada ao endpoint.
+          type: object
+          properties:
+            categoria:
+              $ref: '#/components/schemas/Categoria'
+    Modelo:
+      description: Informações sobre o modelo do veículo.
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              description: ID (identificador) do modelo.
+              type: string
+              example: e441f785b477d4f8454982b8f3c24e40
+            tipo:
+              description: Tipo de informação recebida (entidade).
+              type: string
+              example: categories
+        links:
+          type: object
+          properties:
+            related:
+              description: Link interno atrelado a informação recebida na requisição.
+              type: string
+              example: https://api.bvopen.com.br/cvg-api/v2/marcas/002215e522083b97ccfd83ff970b8e2e/modelos/bc3986e1caad19a344cbae63f9ebcf64/versoes
+    ModeloResponse:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação a receber (entidade).
+          type: string
+          example: modelos
+        id:
+          description: ID (identificador) do modelo do veículo.
+          type: string
+          example: 3b97931f1fc00b1d50467e39cd521e5a
+        atributos:
+          type: object
+          properties:
+            descricao:
+              description: Modelo do veículo (como exibir).
+              type: string
+              example: City
+        relacionamentos:
+          description: Entidades relacionadas na chamada ao endpoint.
+          type: object
+          properties:
+            marca:
+              $ref: '#/components/schemas/Modelo'
+    VersaoResponse:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação a receber (entidade).
+          type: string
+          example: versoes
+        id:
+          description: ID (identificador) da versão.
+          type: string
+          example: ba8290093a4ac3ea13ae72b7fff15661
+        relacionamentos:
+          description: Entidades relacionadas na chamada ao endpoint.
+          type: object
+          properties:
+            modelo:
+              $ref: '#/components/schemas/Modelo'
+        atributos:
+          type: object
+          properties:
+            descricao:
+              description: Versão do veículo (como exibir).
+              type: string
+              example: KA+ SE 1.5 16V 4P (AG) Completo
+    BuscaPlacaResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          example: "identification"
+        vehicle:
+          type: object
+          properties:
+            vehicleData:
+              type: object
+              properties:
+                identificationNumber:
+                  type: string
+                  example: "AAAA91EJ5B9140000"
+                manufacturingYear:
+                  type: string
+                  example: "2009"
+                year:
+                  type: string
+                  example: "2009"
+                brand:
+                  type: string
+                  example: "CHEVROLET"
+                model:
+                  type: string
+                  example: "Corsa Sedan 1.0 Mpfi Wind Sedan 8v"
+                vehicle:
+                  type: string
+                  example: "Sedan"
+                version:
+                  type: string
+                  example: "Versão 1.0"
+                plate:
+                  type: string
+                  example: "XPT2398"
+                regulatoryAgencyWarning:
+                  type: string
+                  example: "DENATRAN"
+                renavam:
+                  type: string
+                  nullable: true
+                  example: null
+            vehicleCharacteristics:
+              type: object
+              properties:
+                fuel:
+                  type: string
+                  example: "GASOLINA"
+                color:
+                  type: string
+                  example: "Verde"
+            mechanicalConfiguration:
+              type: object
+              properties:
+                numberOfAxes:
+                  type: string
+                  example: "2"
+                motor:
+                  type: string
+                  example: "1H1B9147925"
+            versionVmer:
+              type: array
+              items:
+                type: object
+                properties:
+                  description:
+                    type: string
+                    example: "GLK 220 CDI SPORT 2.1 BI-TB 4MATIC 4P (DD) Basico"
+                  price:
+                    type: number
+                    example: 169847
+                  versionId:
+                    type: string
+                    example: "3e3138d065d38490711fbba05a809051"
+                  categoryId:
+                    type: string
+                    example: "c4ca4238a0b923820dcc509a6f75849b"
+                  brandId:
+                    type: string
+                    example: "7a9edb125aa347c6b41a36797e9d701d"
+                  modelId:
+                    type: string
+                    example: "cdbc23d4c45fe218c4db907d0f2482ed"
+        riskAnalysisResult:
+          type: object
+          properties:
+            executionDate:
+              type: string
+              format: date-time
+              example: "2022-10-21T15:55:45.2697929-03:00"
+        success:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 200
+    ElegibilityRequest:
+      type: object
+      required:
+        - nuCpfCnpj
+        - cdSubProduto
+        - flScr
+        - flTermosUso
+      properties:
+        nuCpfCnpj:
+          type: string
+          description: Número de identificação do documento do cliente (CPF/CNPJ).
+          example: '00410443042'
+        cdSubProduto:
+          type: integer
+          description: Código do subproduto comercializado através do EGV.
+          format: int32
+          example: 19
+        flScr:
+          type: boolean
+          description: |
+            Sinaliza a permissão da consulta ao SCR (Sistemas de informações de Créditos), por parte do cliente, utilizando o CPF do mesmo. 
+              * `True`= **Flag marcada**, cliente aceita a consulta.
+              * `Falsa` = **Flag NÃO marcada**, cliente não aceita a consulta.
+          example: true
+        flTermosUso:
+          type: boolean
+          description: |
+            Sinaliza a aceitação e ciência do cliente quanto aos termos condicionais à consulta, utilizando o CPF do mesmo. 
+              * `True`= **Flag marcada**, cliente aceita os termos.
+              * `Falsa` = **Flag NÃO marcada**, cliente não aceita os termos.
+          example: true
+    ElegibilityResponse:
+      type: object
+      properties:
+        nuCpfCnpj:
+          type: string
+          description: Número de identificação do documento do cliente (CPF/CNPJ).
+          example: '00410443042'
+        cdParceiroComercial:
+          type: integer
+          description: Código identificador do parceiro comercial do EGV.
+          format: int32
+          example: 19
+        cdSubProduto:
+          type: integer
+          description: Código do subproduto comercializado através do EGV.
+          format: int32
+          example: 19
+        flScr:
+          description: |
+            Sinaliza a permissão da consulta ao SCR (Sistemas de informações de Créditos), por parte do cliente, utilizando o CPF do mesmo. 
+              * `True` = **Flag marcada**, cliente aceita a consulta.
+              * `Falsa` = **Flag NÃO marcada**, cliente não aceita a consulta.
+          type: boolean
+          example: true
+        flTermosUso:
+          description: |
+            Sinaliza a aceitação e ciência do cliente quanto aos termos condicionais à consulta, utilizando o CPF do mesmo. 
+              * `True` = **Flag marcada**, cliente aceita os termos.
+              * `Falsa` = **Flag NÃO marcada**, cliente não aceita os termos.
+          type: boolean
+          example: true
+        stElegibilidade:
+          type: string
+          description: |
+            Resposta quanto a elegibilidade.
+              * `A` = Aceito, cliente está elegível a liberação de crédito.
+              * `R` = Reprovado, cliente NÃO está elegível a liberação de crédito.
+          example: A
+          enum:
+            - A
+            - R
+        criadoEm:
+          type: string
+          description: Data da criação (YYYY-MM-DD).
+          format: date
+          example: '1975-10-08'
+        alteradoEm:
+          type: string
+          description: Data da alteração (YYYY-MM-DD).
+          format: date
+          example: '1975-10-08'
+    ElegibilityResponseList:
+      type: array
+      items:
+        anyOf:
+          - $ref: '#/components/schemas/ElegibilityResponse'
+    UF:
+      type: string
+      example: SP
+      enum:
+        - AC
+        - AL
+        - AM
+        - AP
+        - BA
+        - CE
+        - DF
+        - ES
+        - GO
+        - MA
+        - MG
+        - MS
+        - MT
+        - PA
+        - PB
+        - PE
+        - PI
+        - PR
+        - RJ
+        - RN
+        - RO
+        - RR
+        - RS
+        - SC
+        - SE
+        - SP
+        - TO
+    CriarSimulacaoRequest:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação relacionada (entidade).
+          example: simulacoes
+          pattern: ^[0-9a-zA-Z]+$
+          minLength: 1
+          maxLength: 50
+        atributos:
+          type: object
+          required:
+            - pessoa
+            - veiculo
+          properties:
+            pessoa:
+              description: Atributos relacionados a pessoa.
+              type: object
+              required:
+                - cpfCnpj
+                - pessoaJuridica
+                - dataNascimento
+              properties:
+                dataNascimento:
+                  description: Data de nascimento. Formato `YYYY-MM-DD`.
+                  type: string
+                  example: '1975-10-08'
+                  format: date
+                cpfCnpj:
+                  description: Número do documento de identificação (CPF se pessoa física, CNPJ se pessoa jurídica)
+                  type: string
+                  example: '12345678901'
+                  maxLength: 14
+                  minLength: 11
+                  pattern: ^[0-9]+$
+                pessoaJuridica:
+                  description: |
+                    Indica se é pessoa jurídica.
+                    * `true`- pessoa jurídica
+                    * `false`- pessoa física
+                  type: boolean
+                  example: false
+            veiculo:
+              description: Atributos relacionados ao veículo.
+              type: object
+              required:
+                - idVersao
+                - uf
+              properties:
+                idVersao:
+                  description: ID (identificador) da versão do veículo.
+                  type: string
+                  pattern: ^[0-9a-zA-Z]+$
+                  minLength: 32
+                  maxLength: 32
+                  example: e49ca51bfc66e0ad9aa3f35d11d8787d
+                uf:
+                  $ref: '#/components/schemas/UF'
+      required:
+        - tipo
+        - atributos
+    Costs:
+      type: object
+      description: Atributos com informações sobre custos diversos envolvidos na proposta.
+      properties:
+        description:
+          description: Descrição do custo de financiamento (registros, tarifas, etc).
+          type: string
+          example: Tarifa de Cadastro
+        groupId:
+          description: ID (identificador) do grupo de custo do financiamento.
+          type: integer
+          example: 5
+        percentage:
+          description: Alíquota referente ao custo (percentual).
+          type: number
+          format: double
+          example: 4.61
+        value:
+          description: Valor efetivo do custo (moeda corrente).
+          type: number
+          format: double
+          example: 924
+    Costs2:
+      type: object
+      description: Atributos com informações sobre custos diversos envolvidos na proposta.
+      properties:
+        description:
+          description: Descrição do custo de financiamento (registros, tarifas, etc).
+          type: string
+          example: Registro de Contrato
+        groupId:
+          description: ID do grupo de custo do financiamento.
+          type: integer
+          example: 6
+        percentage:
+          description: Alíquota referente ao custo (percentual).
+          type: number
+          format: double
+          example: 0.6
+        value:
+          description: Valor efetivo do custo (moeda corrente).
+          type: number
+          format: double
+          example: 120.03
+    Costs3:
+      description: Atributos com informações sobre custos diversos envolvidos na proposta.
+      type: object
+      properties:
+        description:
+          description: Descrição do custo de financiamento (registros, tarifas, etc).
+          type: string
+          example: Tarifa de Avaliação do Bem
+        groupId:
+          description: ID do grupo de custo do financiamento.
+          type: integer
+          example: 10
+        percentage:
+          description: Alíquota referente ao custo (percentual).
+          type: number
+          format: double
+          example: 1.34
+        value:
+          description: Valor efetivo do custo (moeda corrente).
+          type: number
+          format: double
+          example: 269
+    Plan:
+      type: object
+      properties:
+        cost:
+          description: Atributos com informações de custos envolvidos na proposta.
+          type: object
+          properties:
+            totalValue:
+              description: Montante total de custos de avaliação do veículo (moeda corrente).
+              type: number
+              format: float
+              example: 1124.03
+            percentage:
+              description: Alíquota referente ao custo (percentual).
+              type: number
+              format: float
+              example: 0.03977042744284392
+            costs:
+              description: Array contendo atributos para detalhamento de custos diversos.
+              type: array
+              items:
+                oneOf:
+                  - $ref: '#/components/schemas/Costs'
+                  - $ref: '#/components/schemas/Costs2'
+                  - $ref: '#/components/schemas/Costs3'
+        fees:
+          description: Atributos com informações de tarifas envolvidas na proposta.
+          type: object
+          properties:
+            agreed:
+              description: Informações referentes as taridas de financiamento pactuadas (mensal e anual).
+              type: object
+              properties:
+                monthlyRounded:
+                  description: Percentual referente a taxa pactuada mensal arredondada.
+                  type: number
+                  format: double
+                  example: 2.73
+                yearlyRounded:
+                  description: Percentual referente a taxa pactuada anual arredondada.
+                  type: number
+                  format: double
+                  example: 38.23
+            cet:
+              type: object
+              description: Informações sobre a taxa CET (custo efetivo total).
+              properties:
+                monthlyCetRounded:
+                  description: Percentual referente a taxa CET mensal arredondada.
+                  type: number
+                  format: double
+                  example: 2.93
+                yearlyCetRounded:
+                  description: Percentual referente a taxa CET anual arredondada.
+                  type: number
+                  format: double
+                  example: 41.18
+            compensatoryInterest:
+              description: Percentual referente a taxa de juro remuneratório.
+              type: number
+              format: double
+              example: 2.73
+            defaultInterest:
+              description: Percentual referente a taxa de juro moratório.
+              type: number
+              format: double
+              example: 8
+            fine:
+              description: Percentual referente a incidência de multa por atraso.
+              type: number
+              format: double
+              example: 2.94
+        iof:
+          description: Atributos com informações sobre imposto IOF (Imposto sobre Operações Financeiras).
+          type: object
+          properties:
+            percentage:
+              description: Percentual de imposto IOF incidente na operação.
+              type: number
+              format: double
+              example: 2.98
+            value:
+              description: Valor correspondente ao imposto IOF (moeda corrente).
+              type: number
+              format: double
+              example: 598.18
+        planId:
+          description: ID (identificador) do plano de financiamento.
+          type: string
+          example: 272308f6-a382-40a7-8bc0-57bc4755e766
+        qtd:
+          description: Quantidade de parcelas do plano.
+          type: integer
+          example: 36
+        value:
+          description: Valor das parcelas (moeda corrente).
+          type: number
+          format: double
+          example: 851.83
+        values:
+          description: Atributos com resumo dos valores da operação de empréstimo com garantia de veículo.
+          type: object
+          properties:
+            financed:
+              type: object
+              description: Informações sobre o valor financiado com e sem impostos (IOF).
+              properties:
+                afterTaxes:
+                  description: Valor a ser financiado após a incidência de IOF.
+                  type: number
+                  format: double
+                  example: 20055.21
+                beforeTaxes:
+                  description: Valor a ser financiado antes da incidência de IOF.
+                  type: number
+                  format: double
+                  example: 19457.03
+                amount:
+                  description: Valor do montante total do financiamento (moeda corrente).
+                  type: number
+                  format: double
+                  example: 31685.28
+            transaction:
+              description: Valor da proposta menos o valor de entrada (moeda corrente).
+              type: number
+              format: double
+              example: 18144
+            maxProposalValue:
+              description: Valor máximo permitido na proposta de financiamento (moeda corrente).
+              type: number
+              format: double
+              example: 18221.21
+            maximumTransaction:
+              description: Valor máximo permitido na proposta menos o valor de entrada (moeda).
+              type: number
+              format: double
+              example: 18221.21
+    SimulacaoResponse:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação a receber (entidade).
+          type: string
+          example: simulations
+        atributos:
+          type: object
+          properties:
+            isencaoTaxa:
+              description: |
+                Isenção de tarifas ao cliente
+                * `S`- Isenção de tarifas Solicitada
+                * `N`- Isenção de tarifas Não solicitada
+                * `A`- Isenção de tarifas Automática
+              type: string
+              example: S (sim)
+            pessoa:
+              description: Atributos relacionados a pessoa (cliente).
+              type: object
+              properties:
+                pessoalJuridica:
+                  description: |
+                    Indica se é pessoa jurídica
+                    * `true`- pessoa jurídica
+                    * `false`- pessoa física
+                  type: boolean
+                  example: false
+                numeroIdentificacao:
+                  description: Número do documento de identificação.
+                  type: string
+                  example: '99999999999'
+                dataNascimento:
+                  description: Data de nascimento. Formato `YYYY-MM-DD`.
+                  type: string
+                  example: '1975-10-08'
+                papel:
+                  description: |
+                    Função exercída no papel da pessoa.
+                    * `1`- Cliente
+                    * `2`- Empresa
+                  type: number
+                  example: 1
+            empresa:
+              description: Atributos relacionados a empresa parceira (que esta consumindo o EGV).
+              type: object
+              properties:
+                name:
+                  description: Nome da empresa parceira.
+                  type: string
+                  example: Banco Votorantim
+            parcelas:
+              description: Atributos relacionados as parcelas.
+              type: object
+              properties:
+                primeiraData:
+                  description: Data de vencimento da primeira parcela. Formato `YYYY-MM-DD`.
+                  type: string
+                  format: date
+                  example: '2023-01-02'
+                carencia:
+                  description: Atributos referentes ao período de carência.
+                  type: object
+                  properties:
+                    dataMaxima:
+                      description: Data máxima de carência (de acordo com a tabela do parceiro). Formato `YYYY-MM-DD`.
+                      type: string
+                      format: date
+                      example: '2023-01-02'
+                    dataMinima:
+                      description: Data mínima de carência (de acordo com a tabela do parceiro). Formato `YYYY-MM-DD`.
+                      type: string
+                      format: date
+                      example: '2022-11-23'
+                    periodo:
+                      description: Dias de carência, calculados pela política (1ª interação) ou selecionado pelo parceiro EGV.
+                      type: integer
+                      example: 60
+                maximo:
+                  description: Número máximo de parcelas.
+                  type: integer
+                  example: 48
+                planos:
+                  description: Array com opções de planos de parcelamento.
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Plan'
+            veiculo:
+              description: Atributos do veículo.
+              type: object
+              properties:
+                idVersao:
+                  description: ID (identificador) da versão do veículo.
+                  type: string
+                  example: e49ca51bfc66e0ad9aa3f35d11d8787d
+                uf:
+                  description: Sigla do estado da federação de origem (UF).
+                  type: string
+                  example: SP
+            criadoEm:
+              description: Data em que foi criada a simulação. Formato `YYYY-MM-DD`.
+              type: string
+              format: date
+              example: '2022-11-03'
+        id:
+          description: ID (identificador) da simulação.
+          type: string
+          example: CVG-00000064246-31052022123537
+        sistemaOrigem:
+          description: Sistema que originou a simulação.
+          type: string
+          example: EGV-API
+    AtualizarSimulacaoV2Request:
+      type: object
+      properties:
+        parcela:
+          type: object
+          description: Atributos com informações relacionadas as parcelas.
+          required:
+            - primeiraData
+            - quantidade
+          properties:
+            primeiraData:
+              description: Nova data de vencimento da primeira parcela. Formato `YYYY-MM-DD`.
+              type: string
+              example: '2022-01-06'
+              format: date
+            quantidade:
+              description: Quantidade de parcelas desejadas.
+              type: integer
+              minimum: 1
+              maximum: 999999999
+              example: 60
+        valor:
+          type: object
+          required:
+            - transacao
+          properties:
+            transacao:
+              description: Novo valor desejado para transação (moeda corrente).
+              type: number
+              minimum: 0
+              maximum: 999999999
+              example: 56000.99
+        veiculo:
+          type: object
+          description: Atributos com informações relacionadas ao veículo.
+          required:
+            - dadosVeiculo
+            - caracteristicasVeiculo
+          properties:
+            dadosVeiculo:
+              type: object
+              required:
+                - uf
+              properties:
+                uf:
+                  $ref: '#/components/schemas/UF'
+            caracteristicasVeiculo:
+              type: object
+              required:
+                - idVersao
+              properties:
+                idVersao:
+                  description: ID (identificador) da versão do veículo.
+                  type: string
+                  pattern: ^[0-9a-zA-Z]+$
+                  minLength: 32
+                  maxLength: 32
+                  example: 030c22e4fd5d168b087f92cd5b1d2e60
+    RequestCriaProposta:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação (entidade).
+          type: string
+          example: proposta
+        atributos:
+          type: object
+          properties:
+            parceiro:
+              description: Parceiro comercial EGV.
+              type: object
+              properties:
+                agenteCertificado:
+                  description: Atributos do agente certificado, parceiro responsável pela operação de empréstimo.
+                  type: object
+                  properties:
+                    cpf:
+                      description: CPF do agente certificado, parceiro responsável pela operação de empréstimo.
+                      type: string
+                      example: 2739072
+            idPlano:
+              description: Identificador do plano de financiamento escolhido.
+              type: string
+              example: l7xxf2f1158bb81643aa8d8524a1373acf61
+        relacao:
+          type: object
+          description: Informações relacionadas a operação.
+          properties:
+            simulacao:
+              description: Informações sobre a simulação de empréstimo que irá originar a proposta.
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    tipo:
+                      description: Tipo de informação relacinada (entidade).
+                      type: string
+                      example: simulacao
+                    id:
+                      description: ID (identificador) da simulação.
+                      type: string
+                      example: l7xxf2f1158bb81643aa8d8524a1373acf61
+                    criadoEm:
+                      description: Data em que foi criada a simulação. Formato `YYYY-MM-DD`.
+                      type: string
+                      example: '2023-10-11T00:00:00.000Z'
+    PessoaRelacionamento:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            tipo:
+              description: Tipo de informação a receber (entidade).
+              type: string
+              example: people
+            id:
+              description: Número do documento de identificação do cliente (CPF para pessoa física).
+              type: string
+              example: '99999999999'
+        links:
+          type: object
+          properties:
+            relacionado:
+              description: Link interno atrelado a informação relacionada à requisição.
+              type: string
+              example: https://api.bvopen.com.br/cvg-api/v2/proposals/399de0d890d6e21a615a13097e352c99/person
+    VeiculoRelacionamento:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            tipo:
+              description: Tipo de informação a receber (entidade).
+              type: string
+              example: vehicles
+            id:
+              type: string
+              example: '16169220'
+        links:
+          type: object
+          properties:
+            relacionado:
+              description: Link interno atrelado a informação relacionada à requisição.
+              type: string
+              example: https://api.bvopen.com.br/cvg-api/v2/proposals/399de0d890d6e21a615a13097e352c99/vehicle
+    DocumentosItens:
+      type: object
+      properties:
+        id:
+          description: ID (identificador) do documento. Este ID corresponde a um código único, gerado ao realizar o upload do documento.
+          type: string
+          example: 62321640-9c6a-4d53-b16a-a1f9ed33d9c7
+        tipo:
+          description: Tipo de documento.
+          type: string
+          example: documents
+    DocumentosRelacionamento:
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array com dados de documentos atrelados a proposta.
+          items:
+            $ref: '#/components/schemas/DocumentosItens'
+        links:
+          type: object
+          properties:
+            relacionado:
+              type: string
+              example: https://api.bvopen.com.br/cvg-api/v2/proposals/399de0d890d6e21a615a13097e352c99/documents
+    SimulacaoRelacionamento:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            tipo:
+              description: Tipo de informação a receber (entidade).
+              type: string
+              example: simulations
+            id:
+              description: ID (identificador) da simulação.
+              type: string
+              example: 98c50befbacc126335cbb6b3c214effa
+    CreateProposalResponse:
+      type: object
+      properties:
+        tipo:
+          description: Tipo de informação a receber (entidade).
+          type: string
+          pattern: ^[0-9a-zA-Z]+$
+          minLength: 1
+          maxLength: 50
+          example: proposals
+        id:
+          description: ID (identificador) da proposta.
+          type: string
+          pattern: ^[0-9a-zA-Z]+$
+          minLength: 1
+          maxLength: 50
+          example: CVG-00000000000-00000000000000
+        atributos:
+          type: object
+          properties:
+            parcela:
+              description: Atributos relacionados as parcelas.
+              type: object
+              properties:
+                primeiraData:
+                  description: Data da primeira parcela. Formato `YYYY-MM-DD`.
+                  type: string
+                  example: '2022-01-06'
+                quantidadeParcelas:
+                  description: Quantidade de parcelas.
+                  type: integer
+                  minimum: 1
+                  maximum: 999999999
+                  example: 28
+            valor:
+              type: object
+              properties:
+                proposta:
+                  description: Valor de empréstimo desejado pelo cliente (em moeda corrente).
+                  type: integer
+                  minimum: 1
+                  maximum: 999999999
+                  example: 56000
+                entrada:
+                  description: Valor da entrada (em moeda corrente).
+                  type: integer
+                  minimum: 1
+                  maximum: 999999999
+                  example: 56000
+                transacao:
+                  description: Valor total a ser financiado (descontando o Valor de entrada), antes de incluir os custos e impostos da operação (em moeda corrente).
+                  type: integer
+                  minimum: 1
+                  maximum: 999999999
+                  example: 56000
+                parcela:
+                  description: Valor da parcela do plano de financimento (em moeda corrente).
+                  type: number
+                  format: double
+                  minimum: 1
+                  maximum: 10000000
+                  example: 222222
+                valorMaximo:
+                  description: Valor máximo de empréstimo ao cliente, pré-aprovado via análise de crédito (em moeda corrente). **Considerar como referência de máximo**.
+                  type: number
+                  format: double
+                  minimum: 1
+                  maximum: 10000000
+                  example: 222222
+                valorPropostaMaximo:
+                  description: Valor máximo de empréstimo ao cliente, de acordo com simulação realizada (em moeda corrente).
+                  type: number
+                  format: double
+                  minimum: 1
+                  maximum: 10000000
+                  example: 222222
+                iof:
+                  description: Valor referente ao Imposto sobre Operações Financeiras (IOF), em moeda corrente.
+                  type: number
+                  format: double
+                  minimum: 1
+                  maximum: 10000000
+                  example: 222222
+                financiado:
+                  type: object
+                  properties:
+                    antesImpostos:
+                      description: Valor total financiado somado aos custos da operação, **ANTES** da incidência de impostos (em moeda corrente).
+                      type: number
+                      format: double
+                      minimum: 1
+                      maximum: 10000000
+                      example: 222222
+                    depoisImpostos:
+                      description: Valor total financiado somado aos custos da operação, **DEPOIS** da incidência de impostos (em moeda corrente).
+                      type: number
+                      format: double
+                      minimum: 1
+                      maximum: 10000000
+                      example: 222222
+                    totalPago:
+                      description: Montante referente ao valor total a ser pago (em moeda corrente).
+                      type: number
+                      format: double
+                      minimum: 1
+                      maximum: 10000000
+                      example: 222222
+            idPlano:
+              description: ID (identificador) do plano de financiamento escolhido pelo cliente.
+              type: string
+              example: 11a11111-b222-3ead-a44a-a9cd99999b99
+        relacoes:
+          type: object
+          properties:
+            pessoa:
+              $ref: '#/components/schemas/PessoaRelacionamento'
+            veiculo:
+              $ref: '#/components/schemas/VeiculoRelacionamento'
+            documentos:
+              $ref: '#/components/schemas/DocumentosRelacionamento'
+            simulacao:
+              $ref: '#/components/schemas/SimulacaoRelacionamento'
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: APROVADO
+    GetProposalResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              description: ID (identificador) da proposta.
+              type: string
+              example: CVG-99999999999-99999999999999
+            parcela:
+              description: Atributos com informações a respeito das parcelas.
+              type: object
+              properties:
+                primeiraData:
+                  description: Data da primeira parcela. Formato `YYYY-MM-DD`.
+                  type: string
+                  example: '2024-01-01'
+                quantidade:
+                  description: Quantidade de parcelas.
+                  type: integer
+                  example: 36
+                valor:
+                  description: Valor da parcela (em moeda corrente).
+                  type: number
+                  example: 1253.31
+            valorSolicitado:
+              description: Valor solicitado de empréstimo (em moeda corrente).
+              type: number
+              example: 111197.01
+            valorLiberado:
+              description: Valor liberado para empréstimo (em moeda corrente).
+              type: number
+              example: 19298.01
+            status:
+              type: object
+              properties:
+                uploadDocumentos:
+                  $ref: '#/components/schemas/StatusResponse'
+                inspecaoVeiculo:
+                  $ref: '#/components/schemas/StatusResponse'
+                assinaturaDocumentos:
+                  $ref: '#/components/schemas/StatusResponse'
+                pagamento:
+                  $ref: '#/components/schemas/StatusResponse'
+    Genero:
+      description: Genêro.
+      type: string
+      enum:
+        - MASCULINO
+        - FEMININO
+        - OUTRO
+      example: MASCULINO
+    EstadoCivil:
+      description: Estado Cívil.
+      type: string
+      enum:
+        - DESQUITADO
+        - DIVORCIADO
+        - SEPARADO
+        - SOLTEIRO
+        - CASADO
+        - VIUVO
+      example: CASADO
+    Naturalidade:
+      description: Cidade em que o cliente nasceu.
+      type: object
+      properties:
+        descricao:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ-.' ]+$
+          minLength: 3
+          maxLength: 80
+          example: São Paulo
+        uf:
+          $ref: '#/components/schemas/UF'
+    Nacionalidade:
+      description: Nacionalidade do cliente.
+      type: string
+      enum:
+        - BRASILEIRO
+        - ESTRANGEIRO
+        - NATURALIZADO
+      example: BRASILEIRO
+    TipoDocumento:
+      description: Tipo de documento de identificação.
+      type: string
+      enum:
+        - RG
+        - RNE
+        - OUTRO
+      example: RG
+    Documento:
+      description: Atributos com informações sobre o documento de identificação do cliente.
+      type: object
+      properties:
+        nomeOrgaoEmissor:
+          description: Orgão que emitiu o documento.
+          type: string
+          minLength: 1
+          maxLength: 40
+          example: SSP
+        unidadeFederacaoEmissao:
+          $ref: '#/components/schemas/UF'
+        numeroQuote:
+          description: Número/caracteres do documento de identificação.
+          type: string
+          pattern: ^[0-9a-zA-Z]+$
+          minLength: 7
+          maxLength: 20
+          example: '3556384932'
+        tipo:
+          $ref: '#/components/schemas/TipoDocumento'
+      required:
+        - numeroQuote
+        - nomeOrgaoEmissor
+        - unidadeFederacaoEmissao
+        - tipo
+    TipoEndereco:
+      description: Tipo de endereço a informar.
+      type: string
+      enum:
+        - RESIDENCIAL
+        - COMERCIAL
+        - ALTERNATIVO
+        - FISCAL
+      example: RESIDENCIAL
+    StatusResidencia:
+      description: Situação da propriedade em que o cliente reside.
+      type: string
+      enum:
+        - PROPRIO
+        - FAMILIAR
+        - ALUGADO
+        - PROPRIO_FINANCIADO
+        - FUNCIONAL
+        - OUTROS
+        - CEDIDO
+      example: PROPRIO
+    EnderecoCorrespondencia:
+      type: object
+      properties:
+        logradouro:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ-.°&º0-9 ]+$
+          minLength: 1
+          maxLength: 80
+          example: Av. Paulista
+        numero:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ0-9\-\. ]+$
+          minLength: 1
+          maxLength: 40
+          example: '1300'
+        complemento:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ-.°&º0-9 ]+$|^$
+          minLength: 0
+          maxLength: 80
+          example: 15º andar
+        bairro:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ-.'() ]+$
+          minLength: 1
+          maxLength: 80
+          example: Bela Vista
+        cidade:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ-.' ]+$
+          minLength: 1
+          maxLength: 80
+          example: São Paulo
+        cep:
+          type: string
+          pattern: ^[0-9]+$
+          minLength: 8
+          maxLength: 8
+          example: '17560246'
+        uf:
+          $ref: '#/components/schemas/UF'
+      required:
+        - cep
+        - numero
+    Endereco:
+      type: object
+      properties:
+        logradouro:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ-.°&º0-9 ]+$
+          minLength: 1
+          maxLength: 80
+          example: Rua das Primaveras.
+        numero:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ0-9\-\. ]+$
+          minLength: 1
+          maxLength: 40
+          example: '330'
+        complemento:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ-.°&º0-9 ]+$|^$
+          minLength: 0
+          maxLength: 80
+          example: Apto 201
+        bairro:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ-.'() ]+$
+          minLength: 1
+          maxLength: 80
+          example: Goiabal
+        cidade:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ-.' ]+$
+          minLength: 1
+          maxLength: 80
+          example: Rio de Janeiro
+        cep:
+          description: Código postal (CEP), somente números.
+          type: string
+          pattern: ^[0-9]+$
+          minLength: 8
+          maxLength: 8
+          example: '27300590'
+        uf:
+          $ref: '#/components/schemas/UF'
+        tipo:
+          $ref: '#/components/schemas/TipoEndereco'
+        statusResidencia:
+          $ref: '#/components/schemas/StatusResidencia'
+        tempoResidencia:
+          description: Tempo que o cliente reside no atual endereço (em meses).
+          type: integer
+          minimum: 0
+          maximum: 999999999
+        indicadorCorrespondencia:
+          description: |
+            Indicar se o atual endereço do cliente é o mesmo para envio de correspondência.
+            * `true`- O endereço informado é o mesmo para envio de correspondência.
+            * `false`- O endereço informado NÃO é mesmo para envio de correspondência.
+          type: boolean
+          example: false
+        enderecoCorrespondencia:
+          $ref: '#/components/schemas/EnderecoCorrespondencia'
+      required:
+        - cep
+        - numero
+        - statusResidencia
+        - tempoResidencia
+        - indicadorCorrespondencia
+    TipoTelefone:
+      description: Tipo de telefone.
+      type: string
+      enum:
+        - CELULAR
+        - RESIDENCIAL
+        - COMERCIAL
+      example: CELULAR
+    Telefone:
+      description: Atributos com informações sobre o telefone para contato.
+      type: object
+      properties:
+        codigoPais:
+          description: Código do país (DDI).
+          type: string
+          pattern: ^[0-9]+$
+          minLength: 3
+          maxLength: 3
+          example: '055'
+        codigoArea:
+          description: Código de área (DDD).
+          type: string
+          pattern: ^[0-9]+$
+          minLength: 1
+          maxLength: 3
+          example: '11'
+        numero:
+          description: Número do telefone (somente números).
+          type: string
+          pattern: ^[0-9]+$
+          minLength: 8
+          maxLength: 9
+          example: '955556666'
+        tipo:
+          $ref: '#/components/schemas/TipoTelefone'
+      required:
+        - codigoPais
+        - codigoArea
+        - numero
+        - tipo
+    Agencia:
+      type: object
+      description: Dados da agência bancária.
+      properties:
+        numero:
+          description: Número da agência.
+          type: string
+          pattern: ^[0-9]+$
+          minLength: 1
+          maxLength: 40
+          example: '1234'
+        digito:
+          description: Dígito da agência.
+          type: string
+          pattern: ^[0-9]+$|^$
+          minLength: 0
+          maxLength: 1
+          example: '6'
+      required:
+        - numero
+    Conta:
+      description: Dados da conta bancária.
+      type: object
+      properties:
+        numero:
+          description: Número da conta corrente.
+          type: string
+          pattern: ^[0-9]+$
+          minLength: 1
+          maxLength: 15
+          example: '123456'
+        digito:
+          description: Dígito da conta corrente.
+          type: string
+          pattern: ^[A-Za-z0-9]+$
+          minLength: 1
+          maxLength: 2
+          example: '7'
+      required:
+        - numero
+        - digito
+    TipoConta:
+      description: Tipo de conta bancária.
+      type: string
+      enum:
+        - COMUM
+        - ESPECIAL
+        - POUPANCA
+      example: COMUM
+    Banco:
+      type: object
+      description: Dados bancários do cliente.
+      properties:
+        banco:
+          type: string
+          pattern: ^[0-9]+$
+          minLength: 3
+          maxLength: 3
+          example: '001'
+        agencia:
+          $ref: '#/components/schemas/Agencia'
+        conta:
+          $ref: '#/components/schemas/Conta'
+        tipo:
+          $ref: '#/components/schemas/TipoConta'
+      required:
+        - banco
+        - agencia
+        - conta
+        - tipo
+    TipoRenda:
+      description: Tipo de renda.
+      type: string
+      enum:
+        - RENDIMENTO_MENSAL
+        - CONJUGE
+        - OBRIGATORIO
+        - COMPULSORIO
+        - CONSIGNADO
+        - OUTRO
+      example: RENDIMENTO_MENSAL
+    Renda:
+      description: Atributos com informações sobre renda.
+      type: object
+      properties:
+        valorRenda:
+          description: Valor da renda (em moeda corrente).
+          type: number
+          format: double
+          minimum: 1
+          example: 12345.22
+        tipo:
+          $ref: '#/components/schemas/TipoRenda'
+      required:
+        - valorRenda
+        - tipo
+    Empresa:
+      description: Atributos com informações sobre a empresa em que trabalha.
+      type: object
+      properties:
+        nome:
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ0-9&\- ]+$|^
+          minLength: 0
+          maxLength: 80
+          example: Cólegio João Paulo I
+        cnpj:
+          type: string
+          pattern: ^[0-9]+$|^
+          minLength: 0
+          maxLength: 14
+          example: '60657554000199'
+        endereco:
+          $ref: '#/components/schemas/EnderecoCorrespondencia'
+        telefone:
+          type: array
+          items:
+            $ref: '#/components/schemas/Telefone'
+    Profissao:
+      description: Atributos com informações sobre a profissão exercida.
+      type: object
+      properties:
+        codigo:
+          description: Código identificador correspondente a profissão. Obtido através da requisição ao endpoint `GET .../tipos-profissao`.
+          type: string
+          minLength: 0
+          maxLength: 4
+          example: '003'
+        nome:
+          description: Descrição da profissão.
+          type: string
+          example: PROFESSOR
+        renda:
+          $ref: '#/components/schemas/Renda'
+        Empresa:
+          $ref: '#/components/schemas/Empresa'
+        natureza:
+          description: Código referente a natureza da categoria profissinal. Obtido através da requisição ao endpoint `GET .../tipos-profissao-categoria`.
+          type: number
+          minimum: 0
+          maximum: 999999
+          example: 1
+        numeroSegurancaSocial:
+          description: Número do PIS/NIS (somente números).
+          type: string
+          pattern: ^[0-9]+$|^$
+          minLength: 0
+          maxLength: 40
+          example: '55176074251'
+        tempo:
+          description: Tempo de empresa (em meses).
+          type: integer
+          minimum: 0
+          example: 24
+      required:
+        - codigo
+        - renda
+        - tempo
+        - natureza
+    PatchPropostaPessoaRequest:
+      type: object
+      properties:
+        nomeCompleto:
+          description: Nome completo.
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ ]+$
+          minLength: 1
+          maxLength: 80
+          example: Ricardo Carvalho dos Santos
+        dataNascimento:
+          description: Data de nascimento. Formato `YYYY-MM-DD`.
+          type: string
+          minLength: 10
+          maxLength: 10
+          example: '1987-08-06'
+        genero:
+          $ref: '#/components/schemas/Genero'
+        estadoCivil:
+          $ref: '#/components/schemas/EstadoCivil'
+        naturalidade:
+          $ref: '#/components/schemas/Naturalidade'
+        nacionalidade:
+          $ref: '#/components/schemas/Nacionalidade'
+        nomeMaeCompleto:
+          description: Nome completo da mãe.
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ ]+$
+          minLength: 1
+          maxLength: 80
+          example: Leide Carvalho dos Santos
+        documento:
+          $ref: '#/components/schemas/Documento'
+        email:
+          description: Email
+          type: string
+          pattern: ^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$
+          minLength: 1
+          maxLength: 80
+          example: ricardo@mail.com
+        valorPatrimonio:
+          description: Valor referente ao patrimônio do cliente (em moeda corrente).
+          type: number
+          format: double
+          minimum: 1
+          example: 40000
+        endereco:
+          $ref: '#/components/schemas/Endereco'
+        telefone:
+          type: array
+          items:
+            $ref: '#/components/schemas/Telefone'
+        banco:
+          $ref: '#/components/schemas/Banco'
+        profissao:
+          $ref: '#/components/schemas/Profissao'
+      required:
+        - nomeCompleto
+        - dataNascimento
+        - genero
+        - estadoCivil
+        - naturalidade
+        - nacionalidade
+        - nomeMaeCompleto
+        - documento
+        - email
+        - valorPatrimonio
+        - endereco
+        - telefone
+        - banco
+        - profissao
+    BancoResponse:
+      description: Informações sobre os dados bancários do cliente.
+      type: object
+      properties:
+        banco:
+          description: Código identificador do banco.
+          type: string
+          pattern: ^[0-9]+$
+          minLength: 3
+          maxLength: 3
+          example: '001'
+        agencia:
+          $ref: '#/components/schemas/Agencia'
+        conta:
+          $ref: '#/components/schemas/Conta'
+        tipo:
+          $ref: '#/components/schemas/TipoConta'
+        tipoFavorecido:
+          description: Tipo de favorecido, proponente ao empréstimo.
+          type: string
+          example: CLIENTE
+        contaRegistrado:
+          type: boolean
+          example: false
+        tipoPagamento:
+          description: Tipo de pagamento, forma que será efetuado o pagamento.
+          type: string
+          example: DOC/TED
+      required:
+        - banco
+        - agencia
+        - conta
+        - tipo
+    PatchPropostaPessoaResponseData:
+      type: object
+      properties:
+        nomeCompleto:
+          description: Nome completo.
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ ]+$
+          minLength: 1
+          maxLength: 80
+          example: Ricardo Carvalho dos Santos
+        dataNascimento:
+          description: Data de nascimento. Formato `YYYY-MM-DD`.
+          type: string
+          minLength: 10
+          maxLength: 10
+          example: '2002-02-02'
+        genero:
+          $ref: '#/components/schemas/Genero'
+        estadoCivil:
+          $ref: '#/components/schemas/EstadoCivil'
+        naturalidade:
+          $ref: '#/components/schemas/Naturalidade'
+        nacionalidade:
+          $ref: '#/components/schemas/Nacionalidade'
+        nomeMaeCompleto:
+          description: Nome completo da mãe.
+          type: string
+          pattern: ^[A-Za-zÀ-ÿ ]+$
+          minLength: 1
+          maxLength: 80
+          example: Leide Carvalho dos Santos
+        documento:
+          $ref: '#/components/schemas/Documento'
+        email:
+          type: string
+          pattern: ^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$
+          minLength: 1
+          maxLength: 80
+          example: ricardo@mail.com
+        valorPatrimonio:
+          description: Valor referente ao patrimônio do cliente (em moeda corrente).
+          type: number
+          format: double
+          minimum: 1
+          example: 40000
+        endereco:
+          $ref: '#/components/schemas/Endereco'
+        telefone:
+          description: Array com informações sobre o telefone para contato.
+          type: array
+          items:
+            $ref: '#/components/schemas/Telefone'
+        banco:
+          $ref: '#/components/schemas/BancoResponse'
+        profissao:
+          $ref: '#/components/schemas/Profissao'
+      required:
+        - nomeCompleto
+        - genero
+        - estadoCivil
+        - nacionalidade
+        - nomeMaeCompleto
+        - documento
+        - email
+        - valorPatrimonio
+        - endereco
+        - telefone
+        - banco
+        - profissao
+    PatchPropostaPessoaResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/PatchPropostaPessoaResponseData'
+        statusCode:
+          type: integer
+          example: 200
+        success:
+          type: boolean
+          example: true
+    PatchPropostaVeiculoRequest:
+      description: Objeto com dados do veículo.
+      type: object
+      properties:
+        placa:
+          description: Placa do veículo.
+          type: string
+          example: GTK8686
+      required:
+        - placa
+    TipoCombustivel:
+      description: Tipo de combustível do veículo.
+      type: string
+      enum:
+        - GASOLINA
+        - ALCOOL
+        - DIESEL
+        - ELETRICO
+        - GNV
+        - GASOLINA_GNV
+        - ALCOOL_GNV
+        - GASOLINA_ALCOOL
+        - GASOLINA_ALCOOL_GNV
+        - GASOLINA_ALCOOL_ELECTRICO
+        - GASOLINA_ELETRICO
+        - ALCOOL_ELETRICO
+        - DIESEL_ELETRICO
+      example: GASOLINA
+    VeiculoCaracteristica:
+      description: Atributos com informações sobre as características do veículo.
+      type: object
+      properties:
+        categoria:
+          description: Categoria do veículo.
+          type: string
+          example: AUTOMOVEL
+        cor:
+          description: Cor do veículo.
+          type: string
+          pattern: ^[a-zA-Z]+$
+          minLength: 1
+          maxLength: 40
+          example: PRETO
+        portas:
+          description: Número do portas do veículo.
+          type: string
+          example: 4
+        combustivel:
+          $ref: '#/components/schemas/TipoCombustivel'
+      required:
+        - cor
+        - combustivel
+    VeiculoDados:
+      description: Atributos com conjunto de dados do veículo.
+      type: object
+      properties:
+        placa:
+          description: Placa do Veículo.
+          type: string
+          example: GTK8686
+        ufPlaca:
+          $ref: '#/components/schemas/UF'
+        numeroIdentificacao:
+          description: Chassí do veículo.
+          type: string
+          minLength: 1
+          maxLength: 40
+          example: 2G1F91EJ5B9147925
+        codigoRegistroNacional:
+          description: Número do Renavam (Registro Nacional de Veículos).
+          type: string
+          minLength: 1
+          maxLength: 40
+          example: 123456781
+        marca:
+          description: Marca do veículo.
+          type: string
+          example: CHEVROLET
+        modelo:
+          description: Modelo do veículo.
+          type: string
+          example: Cruze LT 1.8 16V Ecotec6 Flex 4P
+        versao:
+          description: Versão do veículo.
+          type: string
+          example: LTZ
+        ano:
+          description: Ano do modelo do veículo.
+          type: number
+          example: 2014
+        anoFabricacao:
+          description: Ano de fabricação do veículo.
+          type: number
+          minimum: 1910
+          maximum: 2999
+          example: 2018
+        classificacao:
+          description: Classificação do veículo.
+          type: string
+          example: tipo de classificação
+        pais:
+          description: País em que foi fabricado o veículo.
+          type: string
+          example: Brasil
+        localFabricacao:
+          description: Local de Fabricação do veículo. Formato `cidade - UF`.
+          type: string
+          example: Sao Caetano do Sul - SP
+        regiaoGeografica:
+          description: Continente em que o veículo foi fabricado (continente).
+          type: string
+          example: America do Sul
+    VeiculoConfiguracaoMecanica:
+      properties:
+        tipoCarroceria:
+          description: Tipo de carroceria do veículo.
+          example: Sedan
+          type: string
+        motor:
+          description: Descrição quanto ao motor do veículo.
+          type: string
+          example: 1.8 16V Ecotec6
+        tipoMotor:
+          description: Tipo de motor do veículo.
+          type: string
+          nullable: true
+          example: null
+        eixos:
+          description: Número de eixos do veículo.
+          type: string
+          example: '4'
+        tracao:
+          description: Tipo de tração do veículo.
+          type: string
+          nullable: true
+          example: null
+        transmissao:
+          description: Tipo de transmissão do veículo.
+          type: string
+          nullable: true
+          example: null
+    VeiculoLeilao:
+      description: Atributos com informações oriundas da decodificação dos dados do veículo, em caso de registro positivo em base leilão.
+      type: object
+      properties:
+        dataLeilao:
+          description: Data e hora do registro do leilão.
+          type: string
+          example: '2021-10-13T00:00:00-03:00'
+        leiloeiro:
+          description: Nome do leiloeiro.
+          type: string
+          example: Pedro Paulo
+        patio:
+          description: Descrição do pátio em que esta registrado o leilão.
+          type: string
+          example: PEDRO LEILOEIRO
+        sucateamento:
+          description: Avaliação de sucateamento do veículo.
+          type: string
+          example: '3'
+        vendedor:
+          description: Nome do vendedor do veículo.
+          type: string
+          example: Departamento de Transportes
+        condicaoGeralVeiculo:
+          description: Descrição sobre a condição geral do veículo.
+          type: string
+          nullable: true
+          example: INTEIRO
+        urlPic1:
+          description: Imagem 1 do veículo em leilão.
+          type: string
+          example: https://images.com.br/fotos/1
+        urlPic2:
+          description: Imagem 2 do veículo em leilão.
+          type: string
+          example: https://images.com.br/fotos/2
+        urlPic3:
+          description: Imagem 3 do veículo em leilão.
+          type: string
+          example: https://images.com.br/fotos/3
+        urlPic4:
+          description: Imagem 4 do veículo em leilão.
+          type: string
+          example: https://images.com.br/fotos/4
+    VeiculoAnaliseRisco:
+      description: Atributos com informações sobre a decodificação dos dados do veículo em garantia.
+      type: object
+      properties:
+        dataRequisicaoDecodificacao:
+          description: Registro da data e hora da requisição de decodificação dos dados do veículo.
+          type: string
+          example: '2021-10-13T00:00:00-03:00'
+        conclusaoDecodificacao:
+          description: Resultado da decodificação para análise de risco.
+          type: string
+          example: NO RESTRICTIONS FOUND
+        leilao:
+          $ref: '#/components/schemas/VeiculoLeilao'
+    VeiculoResultadoAnaliseRisco:
+      description: Atributos com informações oriundas da análise de risco do veículo, em caso de registro positivo em base leilão.
+      type: object
+      properties:
+        dataRequisicaoLeilao:
+          description: Data e hora do registro de requisição em base leilão.
+          type: string
+          example: '2021-10-13T00:00:00-03:00'
+        condicaoGeralVeiculo:
+          description: Descrição sobre a condição geral do veículo.
+          type: string
+          nullable: true
+          example: INTEIRO
+    VeiculoFornecedor:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 40
+          example: 4004498
+        nome:
+          type: string
+          minLength: 1
+          maxLength: 40
+          example: molicar
+    VeiculoDataVeiculoResponse:
+      type: object
+      properties:
+        caracteristicasVeiculo:
+          $ref: '#/components/schemas/VeiculoCaracteristica'
+        dadosVeiculo:
+          $ref: '#/components/schemas/VeiculoDados'
+        configuracaoMecanicaVeiculo:
+          $ref: '#/components/schemas/VeiculoConfiguracaoMecanica'
+        analiseRisco:
+          $ref: '#/components/schemas/VeiculoAnaliseRisco'
+        resultadoAnaliseRisco:
+          $ref: '#/components/schemas/VeiculoResultadoAnaliseRisco'
+        fornecedor:
+          $ref: '#/components/schemas/VeiculoFornecedor'
+      required:
+        - caracteristicaVeiculo
+        - dadosVeiculo
+    Mensagem:
+      type: object
+      properties:
+        codigo:
+          type: integer
+          example: 20
+        mensagem:
+          type: string
+          example: Message
+    VeiculoDataResponse:
+      type: object
+      properties:
+        veiculo:
+          $ref: '#/components/schemas/VeiculoDataVeiculoResponse'
+        mensagens:
+          type: array
+          items:
+            $ref: '#/components/schemas/Mensagem'
+    PatchPropostaVeiculoResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/VeiculoDataResponse'
+        statusCode:
+          type: integer
+          example: 200
+        success:
+          type: boolean
+          example: true
+    DocumentoResponse:
+      type: object
+      properties:
+        id:
+          description: ID (identificador) do documento.
+          type: string
+          example: id-teste
+        upload:
+          description: Link para upload do documento.
+          type: string
+          example: http://link-teste.com
+        headers:
+          type: string
+          example: application/json
+        extensao:
+          description: Extensão do arquivo a realizar o upload.
+          type: string
+          example: image/jpeg
+    GetPropostaDocumentoResponse:
+      description: Atributos com informações a respeito do documento.
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/DocumentoResponse'
+        statusCode:
+          description: Código de status HTTP da requisição.
+          type: number
+          example: 200
+        success:
+          description: Indica se a requisição foi um sucesso.
+          type: boolean
+          example: true
+    InspecaoResponse:
+      description: Atributos com informações referentes a vistoria do veículo.
+      type: object
+      properties:
+        link:
+          description: Link para realização de vistoria do veículo.
+          example: https://link-inspecao.com
+          type: string
+        idInspecao:
+          description: ID (identificador) da vistoria.
+          example: 1235-1234-1234-1324
+          type: string
+    GetPropostaInspecaoResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/InspecaoResponse'
+        statusCode:
+          description: Código de status HTTP da requisição.
+          type: number
+          example: 200
+        success:
+          description: Indica se a requisição foi um sucesso.
+          type: boolean
+          example: true
+    SignatureResponse:
+      properties:
+        statusCode:
+          description: Código de status HTTP da requisição.
+          type: string
+          example: '200'
+        success:
+          description: Indica se a requisição foi um sucesso.
+          type: boolean
+        data:
+          properties:
+            id:
+              description: Id (identificador) da assinatura eletrônica.
+              type: string
+              example: 047a8402-18f0-4ba9-a64a-dd3f7fd287fb
+            link:
+              description: Link para realização da assinatura eletrônica junto ao agente certificador.
+              type: string
+              example: https://link-image.com.br
+            qrcodeUrl:
+              description: QR Code que direciona para o link da assinatura eletrônica.
+              type: string
+              example: https://link-image-qrcode.com.br
+  responses:
+    UnauthorizedError:
+      description: Unauthorized. Requisição requer autenticação do parceiro comercial.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Acesso de parceiro não autorizado.
+              success:
+                type: boolean
+                example: false
+              statusCode:
+                type: integer
+                example: 401
+    ForbiddenError:
+      description: Forbidden. Servidor recusou a aceitar a requisição.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Servidor recusou a aceitar a requisição.
+              success:
+                type: boolean
+                example: false
+              statusCode:
+                type: integer
+                example: 403
+    InternalServerError:
+      description: Internal Server Error. Servidor se deparou com uma situação de falha inesperada.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Servidor se deparou com uma situação de falha inesperada.
+              success:
+                type: boolean
+                example: false
+              statusCode:
+                type: integer
+                example: 500
+    BadRequestError:
+      description: Bad Request. A requisição não pode ser entendida pelo servidor devido a sintaxe mal formada.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: A requisição não pode ser entendida pelo servidor devido a sintaxe mal formada.
+              success:
+                type: boolean
+                example: false
+              statusCode:
+                type: integer
+                example: 400
+    NotFoundError:
+      description: Not Found. O servidor não encontrou o recurso solicitado.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: O servidor não encontrou o recurso solicitado.
+              success:
+                type: boolean
+                example: false
+              statusCode:
+                type: integer
+                example: 404
+x-tagGroups:
+  - name: API Reference
+    tags:
+      - Elegibilidade
+      - Veículo
+      - Simulação
+      - Proposta
+      - Domínios
